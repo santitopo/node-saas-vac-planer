@@ -7,21 +7,17 @@ class DirectPipeline extends AbstractPipeline {
     let loop = (err, result) => {
       if (err) {
         // Emit an event and stop execution if an error occurs
-        return this.emit("error", err);
+        return { code: 400, message: err };
       }
       if (pendingFilters.length === 0) {
         // Emit an evente and finalize excecution when no more filters left
-        return this.emit("end", result);
+        return null;
       }
       let filter = pendingFilters.shift();
-      process.nextTick(() => {
-        filter.call(this, result, loop);
-      });
+      return filter.call(this, result, loop);
     };
-    // First filter call
-    process.nextTick(() => {
-      loop(null, input);
-    });
+    const resultado = loop(null, input);
+    return resultado;
   }
 }
 

@@ -39,11 +39,11 @@ class Pipes {
     }, 15000);
 
     this.pipeline.on("error", (err) => {
-      console.log(`${err}`);
+      //  console.log(`${err}`);
     });
 
     this.pipeline.on("end", (result) => {
-      console.log(result);
+      // console.log(result);
     });
   };
 }

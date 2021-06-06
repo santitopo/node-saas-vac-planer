@@ -10,7 +10,6 @@ module.exports = class ConfigApi {
   }
 
   init() {
-    console.log("holahola");
     const app = new Koa();
     const router = new Router();
 

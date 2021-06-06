@@ -13,6 +13,7 @@
     "koa": "^2.13.1",
     "koa-bodyparser": "^4.3.0",
     "koa-logger": "^3.2.1",
-    "koa-router": "^10.0.0"
+    "koa-router": "^10.0.0",
+    "ngrok": "^4.0.1"
   }
 }
