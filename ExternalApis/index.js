@@ -35,7 +35,13 @@ const initApi = () => {
   app.use(bodyParser());
   app.use(logger());
   router.get("/people/:id", (ctx, next) => {
-    ctx.body = population[ctx.params.id];
+    if (population[ctx.params.id]) {
+      ctx.status = 200;
+      ctx.body = population[ctx.params.id];
+    } else {
+      ctx.status = 404;
+      ctx.body = "La cedula no se encuentra en el registro civil";
+    }
   });
   app.use(router.routes());
   app.use(router.allowedMethods());
