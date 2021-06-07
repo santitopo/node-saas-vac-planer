@@ -6,7 +6,6 @@ const ReservationFieldController = require("../controller/ReservationFieldContro
 
 module.exports = class ConfigApi {
   constructor() {
-    console.log("constructor");
     this.init();
   }
 

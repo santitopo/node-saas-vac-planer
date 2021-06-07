@@ -6,7 +6,6 @@ module.exports = class ReservationFieldController {
   }
 
   async add(ctx, next) {
-    // Validar que no exista
     // Agregarlo y retornar
 
     const template = `${ctx.request.body.fieldName} = (input, next) => {

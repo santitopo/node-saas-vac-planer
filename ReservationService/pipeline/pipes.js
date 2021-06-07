@@ -9,6 +9,7 @@ class Pipes {
 
   filterLoading() {
     console.log("Cargando filtros nuevamente..");
+    this.pipeline.reset();
     let module_dict = {};
     let files = glob.sync("./pipeline/filters/*.js");
     files.forEach(function (file) {
