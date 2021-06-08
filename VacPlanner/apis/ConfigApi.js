@@ -3,6 +3,7 @@ const logger = require("koa-logger");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
 const ReservationFieldController = require("../controller/ReservationFieldController");
+const AssignmentCriteriaController = require("../controller/AssignmentCriteriaController");
 
 module.exports = class ConfigApi {
   constructor() {
@@ -14,13 +15,29 @@ module.exports = class ConfigApi {
     const router = new Router();
 
     const reservationField = new ReservationFieldController();
+    const assignmentCriteria = new AssignmentCriteriaController();
 
     app.use(bodyParser());
     app.use(logger());
     router.post("/reservationfields", (ctx, next) => {
-      //Step 1 - Chequear que no exista el field en el fs
-      //Step 2 - Agregar al fs el validator
       reservationField.add(ctx, next);
+    });
+    router.post("/assignmentCriteria", async (ctx, next) => {
+      //Step 1 - Agregar a la bd y recuperar el id
+      const id = 99;
+      //Step 2 - Agregar a Redis para mantener sincronizado
+      const success = await assignmentCriteria.addRedis(ctx, id, next);
+      if (!success) {
+        ctx.body = {
+          response: "Error agregando el criterio de asignacion",
+        };
+        ctx.status = 400;
+        return;
+      }
+      ctx.body = {
+        response: "Agregado correctamente el criterio de asignacion",
+      };
+      ctx.status = 200;
     });
     app.use(router.routes());
     app.use(router.allowedMethods());

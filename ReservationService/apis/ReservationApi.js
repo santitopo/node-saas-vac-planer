@@ -59,7 +59,10 @@ module.exports = class ReservationApi {
       const validCriterias = resulArray.filter((e) => e != -1);
       console.log(validCriterias);
       //Step 4 (SQL) - Update de cupo libre
-      //Step 5 (Bull) - Llamada a MQ
+
+      // Step 5
+      // If pudo reservar ->  Dejo la reserva con cupo en la MQ
+      // If no pudo reservar ->  Dejo la reserva pendiente en la MQ
     });
     app.use(router.routes());
     app.use(router.allowedMethods());
