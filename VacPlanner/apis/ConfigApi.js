@@ -6,11 +6,11 @@ const ReservationFieldController = require("../controller/ReservationFieldContro
 const AssignmentCriteriaController = require("../controller/AssignmentCriteriaController");
 
 module.exports = class ConfigApi {
-  constructor() {
-    this.init();
+  constructor(countryDataAccess) {
+    this.init(countryDataAccess);
   }
 
-  init() {
+  init(countryDataAccess) {
     const app = new Koa();
     const router = new Router();
 
@@ -24,6 +24,7 @@ module.exports = class ConfigApi {
     });
     router.post("/assignmentCriteria", async (ctx, next) => {
       //Step 1 - Agregar a la bd y recuperar el id
+      countryDataAccess.addCriteria(ctx.request.body.function);
       const id = 99;
       //Step 2 - Agregar a Redis para mantener sincronizado
       const success = await assignmentCriteria.addRedis(ctx, id, next);
