@@ -5,6 +5,8 @@ const bodyParser = require("koa-bodyparser");
 const Pipes = require("../pipeline/pipes");
 const axios = require("axios");
 const AssignmentCriterias = require("../services/assignmentCriterias");
+const mqReservations = require("../communication/mqReservations");
+const MQReservations = require("../communication/mqReservations");
 
 module.exports = class ReservationApi {
   constructor() {
@@ -27,6 +29,8 @@ module.exports = class ReservationApi {
     const app = new Koa();
     const router = new Router();
     const assignmentCriterias = new AssignmentCriterias();
+    const mq = new MQReservations();
+    
     app.use(bodyParser());
     app.use(logger());
     router.post("/reservations", async (ctx, next) => {
@@ -61,6 +65,10 @@ module.exports = class ReservationApi {
       //Step 4 (SQL) - Update de cupo libre
 
       // Step 5
+      //person es ejemplo, aca se mandaria el tipo de objeto que queremos mandar en JSON a la MQ
+      //Sera tiene proyecto test con consumidor
+      mq.add(person);
+
       // If pudo reservar ->  Dejo la reserva con cupo en la MQ
       // If no pudo reservar ->  Dejo la reserva pendiente en la MQ
     });
