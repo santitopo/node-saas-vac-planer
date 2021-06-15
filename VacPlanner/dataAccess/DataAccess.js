@@ -33,9 +33,11 @@ module.exports = class CountryDataAccess {
   }
 
   addCriteria(fun) {
-    this.AssignmentCriteria.create({
+    return this.AssignmentCriteria.create({
       function: JSON.stringify(fun),
-    });
+    })
+      .then((data) => data.getDataValue("id"))
+      .catch((e) => null);
   }
 
   async initialize() {
