@@ -3,6 +3,9 @@ const redis = require("redis");
 module.exports = class AssignmentCriterias {
   constructor() {
     this.client = redis.createClient();
+    this.client.on("error", function (err) {
+      console.log("CRITICAL ERROR: LOST CONNECTION TO REDIS ");
+    });
     this.updatedCriterias = [];
     this.init();
   }
@@ -30,13 +33,20 @@ module.exports = class AssignmentCriterias {
     });
   };
   getCriterias = () => {
-    console.log("Trayendo ultimos criterios de asignación...");
     this.clientGet("assignmentCriterias")
-      .then((arr) => this.loadFunctions(JSON.parse(arr)))
-      .catch((err) => console.log(err));
+      .then((arr) => {
+        console.log("Trayendo ultimos criterios de asignación...");
+        this.loadFunctions(JSON.parse(arr));
+      })
+      .catch((err) => {
+        console.log("HOLA");
+        console.log(err);
+      });
   };
   init() {
     this.getCriterias();
-    setInterval(() => this.getCriterias(), 30000);
+    setInterval(() => {
+      this.getCriterias();
+    }, 5000);
   }
 };
