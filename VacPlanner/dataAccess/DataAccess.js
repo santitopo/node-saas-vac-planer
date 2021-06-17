@@ -5,7 +5,6 @@ const { Sequelize } = require("sequelize");
 module.exports = class CountryDataAccess {
   constructor() {
     this.initialize();
-    const { host, port, user, password, database } = config;
   }
 
   async createTables() {
