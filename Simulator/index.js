@@ -1,19 +1,34 @@
 var fs = require("fs");
 var csv = require("csv");
-var axios = require("axios");
+var http = require("http")
 
 const dataset = [];
 var counter = 0;
 async function reservationRequest(reservation, counter) {
     try {
-      const response =await axios.post(
-        "http://localhost:5004/reservations", reservation
-      );
-      //console.log(response)
-      return response.data;
+      const postReq =  http.request({
+        host: 'localhost',
+        port: "5004",
+        path: '/reservations',
+        headers: {
+          'Content-Type': 'application/json'
+      },
+        method: "POST"
+      }, function(response) {
+        var str = '';
+        response.on('data', function (chunk) {
+          str += chunk;
+        });
+        response.on('end', function () {
+          return str
+        });
+        
+      })
+        reservation.timestampI = Date.now()
+        postReq.write(JSON.stringify(reservation))
+        postReq.end()
     } catch (error) {
-      console.log(error.response.data, counter)
-      return null;
+      console.log(error, counter)
     }
 }
 
@@ -25,30 +40,24 @@ var parser = csv.parse({ columns: true, delimiter: "|"});
 
 parser.on("readable", function () {
     while (record = parser.read()) {
-      if(record.DocumentId && record.Cellphone && record.ReservationDate && record.Schedule && record.State && record.Zone){
-        const reservationObject = {
-            "id": record.DocumentId,
-            "cellphone": record.Cellphone,
-            "date": record.ReservationDate,
-            "turno": record.Schedule,
-            "estado": record.State,
-            "zone": record.Zone,
-            "lastname": "aaabbb",
-            "pin":"123",
-            "timestampI": Date.now()
-        }
-        dataset.push(reservationObject)
+      const reservationObject = {
+          "id": record.DocumentId,
+          "cellphone": record.Cellphone,
+          "date": record.ReservationDate,
+          "turno": record.Schedule,
+          "estado": record.State,
+          "zone": record.Zone,
+          "lastname": "aaabbb",
+          "pin":"123"
       }
+      dataset.push(reservationObject)
     }
 });
 
 parser.on("error", function (err) {
-  console.log(err.data);
 });
 
 parser.on("finish", function () {
-  console.log("finish");
-  console.log(dataset.length)
   initApi();
 });
 
@@ -58,13 +67,11 @@ readStream1.pipe(parser);
 
 const initApi = () => {
   console.log("finish init")
-
+  
   dataset.forEach(r => {
-    if(counter<500){
+    if(counter<100){
       counter++
       reservationRequest(r, counter)
     }
   })
-  
-
 };
