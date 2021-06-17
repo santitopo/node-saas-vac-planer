@@ -57,7 +57,7 @@ module.exports = class AssignmentCriteriaController {
         index: id,
       };
       //Ir a buscar a redis
-      const allCriterias = await this.getCriterias();
+      const allCriterias = await this.getCriterias() || [];
       //Agregar a redis
       allCriterias.push(newCriteria);
       await this.setCriterias(allCriterias);

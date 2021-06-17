@@ -24,9 +24,9 @@ module.exports = class AssignmentCriterias {
       index: obj.index,
     }));
   };
-  clientGet = (message) => {
+  clientGet = (key) => {
     return new Promise((fullfill, reject) => {
-      this.client.get(message, (err, data) => {
+      this.client.get(key, (err, data) => {
         if (err) reject(err);
         else fullfill(data);
       });
@@ -36,7 +36,7 @@ module.exports = class AssignmentCriterias {
     this.clientGet("assignmentCriterias")
       .then((arr) => {
         console.log("Trayendo ultimos criterios de asignación...");
-        this.loadFunctions(JSON.parse(arr));
+        this.loadFunctions(JSON.parse(arr) || []);
       })
       .catch((err) => {
         console.log("HOLA");
