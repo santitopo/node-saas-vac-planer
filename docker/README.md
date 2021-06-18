@@ -23,8 +23,21 @@ Compose es una herramienta para definir y ejecutar aplicaciones Docker en múlti
 
 * ```docker-compose up mysql```
 * Acceder al cliente de mysql ```docker run -it --network sa-network --rm mysql mysql -hmysql -uroot -ppassword```
+* Usar Country DB ```use countryDB```. Ejecutar consultas normalmente [query];
 
 ## MongoDB
 
 * ```docker-compose up mongo```
 * Acceder al cliente de mongodb ```docker run -it --network sa-network --rm mongo mongo --host mongo test```
+
+
+##Borrar Base de datos entera
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS Slot;
+DROP TABLE IF EXISTS State;
+DROP TABLE IF EXISTS VacCenter;
+DROP TABLE IF EXISTS VaccinationPeriod;
+DROP TABLE IF EXISTS Vaccine;
+DROP TABLE IF EXISTS Zone;
+DROP TABLE IF EXISTS AssignmentCriteria;
+SET FOREIGN_KEY_CHECKS = 1;

@@ -87,6 +87,13 @@ module.exports = class ReservationController {
 
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
     //Step 4 (SQL) - Update de cupo libre. Deberia devolver el slot
+    this.countryDataAccess.updateSlot({
+      turn: body.turn,
+      reservationDate: body.reservationDate,
+      stateCode: body.stateCode,
+      zoneCode: body.zoneCode,
+      assignmentCriteriasIds: validCriterias,
+    });
 
     const slotAssigned = {
       vaccinationPeriodId: 5,
@@ -96,8 +103,6 @@ module.exports = class ReservationController {
       zone: "Centro",
       neighborhood: "Barrio Sur",
     };
-
-    this.countryDataAccess.updateSlot({});
 
     // Step 5
     //Objeto MQ
