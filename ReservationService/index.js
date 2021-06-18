@@ -1,2 +1,5 @@
+const CountryDataAccess = require("./dataAccess/DataAccess");
 const ReservationApi = require("./apis/ReservationApi");
-const reservationApi = new ReservationApi();
+
+const countryDataAccess = new CountryDataAccess();
+const reservationApi = new ReservationApi(countryDataAccess);

@@ -5,11 +5,11 @@ const MQReservations = require("../communication/mqReservations");
 const uniqid = require("uniqid");
 
 module.exports = class ReservationController {
-  constructor() {
+  constructor(countryDataAccess) {
     this.pipes = new Pipes();
     this.assignmentCriterias = new AssignmentCriterias();
     this.mq = new MQReservations();
-    this.init();
+    this.countryDataAccess = countryDataAccess;
   }
 
   async fetchPerson(personId) {
@@ -97,42 +97,44 @@ module.exports = class ReservationController {
       neighborhood: "Barrio Sur",
     };
 
+    this.countryDataAccess.updateSlot({});
+
     // Step 5
     //Objeto MQ
-    let reservationCode = uniqid();
-    err = this.sendReservationToMQ(person, slotAssigned, body, reservationCode);
-    if (err) {
-      return err;
-    }
-    // If pudo reservar ->  Dejo la reserva con cupo en la MQ
-    if (slotAssigned) {
-      return {
-        body: {
-          dni: person.id,
-          reservationCode,
-          departamento: 0,
-          zona: 0,
-          codigo_vacunatorio: 0,
-          date: body.reservationDate,
-          turno: 1,
-          timestampI: new Date(body.timestampI).toISOString(),
-          timestampR: new Date(Date.now()).toISOString(),
-          timestampD: Date.now() - new Date(body.timestampI) + " ms",
-        },
-        status: 200,
-      };
-    } else {
-      return {
-        body: {
-          reservationCode: reservationCode,
-          mensaje: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
-          timestampI: body.timestampI,
-          timestampR: Date.now(),
-          timestampD: Date.now() - timestampI,
-        },
-        status: 200,
-      };
-    }
+    // let reservationCode = uniqid();
+    // err = this.sendReservationToMQ(person, slotAssigned, body, reservationCode);
+    // if (err) {
+    //   return err;
+    // }
+    // // If pudo reservar ->  Dejo la reserva con cupo en la MQ
+    // if (slotAssigned) {
+    //   return {
+    //     body: {
+    //       dni: person.id,
+    //       reservationCode,
+    //       departamento: 0,
+    //       zona: 0,
+    //       codigo_vacunatorio: 0,
+    //       date: body.reservationDate,
+    //       turno: 1,
+    //       timestampI: new Date(body.timestampI).toISOString(),
+    //       timestampR: new Date(Date.now()).toISOString(),
+    //       timestampD: Date.now() - new Date(body.timestampI) + " ms",
+    //     },
+    //     status: 200,
+    //   };
+    // } else {
+    //   return {
+    //     body: {
+    //       reservationCode: reservationCode,
+    //       mensaje: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
+    //       timestampI: body.timestampI,
+    //       timestampR: Date.now(),
+    //       timestampD: Date.now() - timestampI,
+    //     },
+    //     status: 200,
+    //   };
+    // }
   }
 
   init() {}
