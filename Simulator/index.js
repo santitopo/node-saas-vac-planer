@@ -69,7 +69,7 @@ const initApi = () => {
   console.log("finish init")
   
   dataset.forEach(r => {
-    if(counter<100){
+    if(counter<1){
       counter++
       reservationRequest(r, counter)
     }
