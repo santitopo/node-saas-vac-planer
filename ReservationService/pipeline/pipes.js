@@ -8,7 +8,7 @@ class Pipes {
   }
 
   filterLoading() {
-    console.log("Cargando filtros nuevamente..");
+    console.log("Actualizando Filtros de Reserva...");
     this.pipeline.reset();
     let module_dict = {};
     let files = glob.sync("./pipeline/filters/*.js");
@@ -18,11 +18,13 @@ class Pipes {
         let dot = dash[3].split(".");
         if (dot.length == 2) {
           let key = dot[0];
-          module_dict[key] = require(`./filters/${dot[0]}`);
+          const path = `./filters/${dot[0]}`;
+          module_dict[key] = require(path);
+          delete require.cache[require.resolve(path)];
+          module_dict[key] = require(path);
         }
       }
     });
-
     for (var key in module_dict) {
       if (module_dict.hasOwnProperty(key)) {
         if (this.pipeline.filters.indexOf(module_dict[key]) < 0) {
@@ -37,14 +39,6 @@ class Pipes {
     setInterval(() => {
       this.filterLoading();
     }, 15000);
-
-    this.pipeline.on("error", (err) => {
-      //  console.log(`${err}`);
-    });
-
-    this.pipeline.on("end", (result) => {
-      // console.log(result);
-    });
   };
 }
 module.exports = Pipes;

@@ -1,5 +1,6 @@
 const config = require("../../config.json");
-const mysql = require("mysql2/promise");
+//const mysql = require("mysql2/promise");
+const { Client } = require("pg");
 const { Sequelize } = require("sequelize");
 
 module.exports = class CountryDataAccess {
@@ -10,15 +11,14 @@ module.exports = class CountryDataAccess {
   async createTables() {
     const { host, port, user, password, database } = config;
     // connect to db
-    const sequelize = new Sequelize(database, user, password, {
-      dialect: "mysql",
-      host: host,
-      port: port,
-    });
+    this.sequelize = new Sequelize(
+      `postgres://${user}:${password}@${host}:${port}/${database}`,
+      { logging: false }
+    );
 
     // init Assignment criteria model and add them to the db object
-    this.AssignmentCriteria = sequelize.define(
-      "AssignmentCriteria",
+    this.AssignmentCriteria = this.sequelize.define(
+      "assignment_criteria",
       {
         function: { type: Sequelize.STRING },
       },
@@ -41,15 +41,22 @@ module.exports = class CountryDataAccess {
 
   async initialize() {
     // create db if it doesn't already exist
-
-    const { host, port, user, password, database } = config;
-    const connection = await mysql.createConnection({
-      host,
-      port,
-      user,
-      password,
+    const { database } = config;
+    this.connection = new Client({
+      user: "postgres",
+      host: "localhost",
+      password: "password",
+      port: 5432,
     });
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+    this.connection.connect();
+    this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
+      if (res.rows.filter((d) => d.datname === database).length < 1) {
+        this.connection.query(`CREATE DATABASE ${database};`, (err, res) => {
+          console.log(err, res);
+          this.connection.end();
+        });
+      }
+    });
     this.createTables();
   }
 };
