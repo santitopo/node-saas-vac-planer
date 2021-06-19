@@ -1,5 +1,6 @@
 const config = require("../../config.json");
-const mysql = require("mysql2/promise");
+//const mysql = require("mysql2/promise");
+const { Client } = require("pg");
 const { Sequelize } = require("sequelize");
 
 module.exports = class CountryDataAccess {
@@ -10,15 +11,14 @@ module.exports = class CountryDataAccess {
   async createTables() {
     const { host, port, user, password, database } = config;
     // connect to db
-    const sequelize = new Sequelize(database, user, password, {
-      dialect: "mysql",
-      host: host,
-      port: port,
-    });
+    this.sequelize = new Sequelize(
+      `postgres://${user}:${password}@${host}:${port}/${database}`,
+      { logging: false }
+    );
 
-    // init Models and add them with FK and PK restrictions to the db object
-    this.AssignmentCriteria = sequelize.define(
-      "AssignmentCriteria",
+    // init Assignment criteria model and add them to the db object
+    this.AssignmentCriteria = this.sequelize.define(
+      "assignment_criteria",
       {
         function: { type: Sequelize.STRING },
       },
@@ -194,27 +194,27 @@ module.exports = class CountryDataAccess {
   async addState(state) {
     return await this.State.create({
       code: state.code,
-      name: state.name
-    })
+      name: state.name,
+    });
   }
   async addZone(zone) {
     return await this.Zone.create({
       code: zone.code,
       stateCode: zone.stateCode,
-      name: zone.name
-    })
+      name: zone.name,
+    });
   }
   async addVacCenter(vacCenter) {
     return await this.VacCenter.create({
       zoneId: vacCenter.zoneId,
-      name: vacCenter.name
-    })
+      name: vacCenter.name,
+    });
   }
   async addVaccine(vaccine) {
     return await this.Vaccine.create({
       name: vaccine.name,
-      recommendations: vaccine.recommendations
-    })
+      recommendations: vaccine.recommendations,
+    });
   }
   async addVaccinationPeriod(vaccinationPeriod) {
     let vp = await this.VaccinationPeriod.create({
@@ -223,9 +223,9 @@ module.exports = class CountryDataAccess {
       dateTo: vaccinationPeriod.dateTo,
       vacCenterId: vaccinationPeriod.vacCenterId,
       assignmentCriteriaId: vaccinationPeriod.assignmentCriteriaId,
-      vaccineId: vaccinationPeriod.vaccineId
-    })
-    return JSON.stringify(vp, null, 2)
+      vaccineId: vaccinationPeriod.vaccineId,
+    });
+    return JSON.stringify(vp, null, 2);
   }
   async addSlot(slot) {
     return await this.Slot.create({
@@ -239,76 +239,76 @@ module.exports = class CountryDataAccess {
       stateCode: slot.stateCode,
       vacCenterId: slot.vacCenterId,
       zoneId: slot.zoneId,
-      vaccinationPeriodId: slot.vaccinationPeriodId
-    })
+      vaccinationPeriodId: slot.vaccinationPeriodId,
+    });
   }
 
   //GET ALL
   async getStates() {
-    const states = await this.State.findAll()
-    return JSON.stringify(states, null, 2)
+    const states = await this.State.findAll();
+    return JSON.stringify(states, null, 2);
   }
   async getZones() {
-    const zones = await this.Zone.findAll()
-    return JSON.stringify(zones, null, 2)
+    const zones = await this.Zone.findAll();
+    return JSON.stringify(zones, null, 2);
   }
   async getVacCenters() {
-    const vacCenters = await this.VacCenter.findAll()
-    return JSON.stringify(vacCenters, null, 2)
+    const vacCenters = await this.VacCenter.findAll();
+    return JSON.stringify(vacCenters, null, 2);
   }
   async getVaccines() {
-    const vaccines = await this.Vaccine.findAll()
-    return JSON.stringify(vaccines, null, 2)
+    const vaccines = await this.Vaccine.findAll();
+    return JSON.stringify(vaccines, null, 2);
   }
   async getVaccinationPeriods() {
-    const vaccinationPeriods = await this.VaccinationPeriod.findAll()
-    return JSON.stringify(vaccinationPeriods, null, 2)
+    const vaccinationPeriods = await this.VaccinationPeriod.findAll();
+    return JSON.stringify(vaccinationPeriods, null, 2);
   }
   async getSlots() {
-    const slots = await this.Slot.findAll()
-    return JSON.stringify(slots, null, 2)
+    const slots = await this.Slot.findAll();
+    return JSON.stringify(slots, null, 2);
   }
 
   //GET
   async getAState(code) {
     const states = await this.State.findAll({
       where: {
-        code: code
-      }
-    })
-    return JSON.stringify(states, null, 2)
+        code: code,
+      },
+    });
+    return JSON.stringify(states, null, 2);
   }
   async getAZone(id) {
     const zones = await this.Zone.findAll({
       where: {
-        id: id
-      }
-    })
-    return JSON.stringify(zones, null, 2)
+        id: id,
+      },
+    });
+    return JSON.stringify(zones, null, 2);
   }
   async getAVacCenter(id) {
     const vacCenters = await this.VacCenter.findAll({
       where: {
-        id: id
-      }
-    })
-    return JSON.stringify(vacCenters, null, 2)
+        id: id,
+      },
+    });
+    return JSON.stringify(vacCenters, null, 2);
   }
   async getAVaccine(id) {
     const vaccines = await this.Vaccine.findAll({
       where: {
-        id: id
-      }
-    })
-    return JSON.stringify(vaccines, null, 2)
+        id: id,
+      },
+    });
+    return JSON.stringify(vaccines, null, 2);
   }
   async getAVaccinationPeriod(id) {
     const vaccinationPeriods = await this.VaccinationPeriod.findAll({
       where: {
-        id: id
-      }
-    })
-    return JSON.stringify(vaccinationPeriods, null, 2)
+        id: id,
+      },
+    });
+    return JSON.stringify(vaccinationPeriods, null, 2);
   }
   async getASlot(body) {
     const slots = await this.Slot.findAll({
@@ -316,49 +316,49 @@ module.exports = class CountryDataAccess {
         date: body.date,
         turn: body.turn,
         vaccinationPeriodId: body.vaccinationPeriodId,
-        zoneId:body.zoneId,
+        zoneId: body.zoneId,
         vacCenterId: body.vacCenterId,
-        stateCode:body.stateCode
-      }
-    })
-    return JSON.stringify(slots, null, 2)
+        stateCode: body.stateCode,
+      },
+    });
+    return JSON.stringify(slots, null, 2);
   }
 
   //DELETE
   async deleteAState(code) {
     return await this.State.destroy({
       where: {
-        code: code
-      }
-    })
+        code: code,
+      },
+    });
   }
   async deleteAZone(id) {
     return await this.Zone.destroy({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async deleteAVacCenter(id) {
     return await this.VacCenter.destroy({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async deleteAVaccine(id) {
     return await this.Vaccine.destroy({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async deleteAVaccinationPeriod(id) {
     return await this.VaccinationPeriod.destroy({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async deleteASlot(body) {
     return await this.Slot.destroy({
@@ -366,80 +366,85 @@ module.exports = class CountryDataAccess {
         date: body.date,
         turn: body.turn,
         vaccinationPeriodId: body.vaccinationPeriodId,
-        zoneId:body.zoneId,
+        zoneId: body.zoneId,
         vacCenterId: body.vacCenterId,
-        stateCode:body.stateCode
-      }
-    })
+        stateCode: body.stateCode,
+      },
+    });
   }
 
   //UPDATE
   async updateAState(code, newName) {
     return await this.State.update(newName, {
       where: {
-        code: code
-      }
-    })
+        code: code,
+      },
+    });
   }
   async updateAZone(id, newName) {
     return await this.Zone.update(newName, {
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async updateAVacCenter(id, newName) {
     return await this.VacCenter.update(newName, {
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async updateAVaccine(id, newName) {
     return await this.Vaccine.update(newName, {
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async updateAVaccinationPeriod(id, newName) {
     return await this.VaccinationPeriod.update(newName, {
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
   async updateASlot(newName) {
     let update = {
       assignmentCriteriaId: newName.assignmentCriteriaId,
       availableSlots: newName.availableSlots,
       totalSlots: newName.totalSlots,
-
-    }
+    };
     return await this.Slot.update(update, {
       where: {
         date: newName.date,
         turn: newName.turn,
         vaccinationPeriodId: newName.vaccinationPeriodId,
-        zoneId:newName.zoneId,
+        zoneId: newName.zoneId,
         vacCenterId: newName.vacCenterId,
-        stateCode:newName.stateCode
-      }
-    })
+        stateCode: newName.stateCode,
+      },
+    });
   }
 
   async initialize() {
     // create db if it doesn't already exist
-    const { host, port, user, password, database } = config;
-    this.connection = await mysql.createConnection({
-      host,
-      port,
-      user,
-      password,
+    const { database } = config;
+    this.connection = new Client({
+      user: "postgres",
+      host: "localhost",
+      password: "password",
+      port: 5432,
     });
-    await this.connection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${database}\`;`
-    );
+    this.connection.connect();
+    this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
+      if (res.rows.filter((d) => d.datname === database).length < 1) {
+        this.connection.query(`CREATE DATABASE ${database};`, (err, res) => {
+          console.log(err, res);
+          this.connection.end();
+        });
+      }
+    });
     this.createTables();
   }
 };

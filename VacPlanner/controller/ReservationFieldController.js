@@ -15,15 +15,12 @@ module.exports = class ReservationFieldController {
       };
       module.exports = ${ctx.request.body.fieldName};
       `;
-
-    fs.writeFile(
-      `../ReservationService/pipeline/filters/${ctx.request.body.fieldName}.js`,
-      template,
-      function (err) {
-        if (err) return console.log(err);
-        console.log("error writing file");
+    const path = `../ReservationService/pipeline/filters/${ctx.request.body.fieldName}.js`;
+    fs.writeFile(path, template, function (err) {
+      if (err) {
+        console.log(err);
       }
-    );
+    });
 
     ctx.body = {
       response: `Agregado Correctamente la validacion para el campo ${ctx.request.body.fieldName}`,

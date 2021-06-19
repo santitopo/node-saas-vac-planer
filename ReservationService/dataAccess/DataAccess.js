@@ -1,5 +1,5 @@
 const config = require("../../config.json");
-const mysql = require("mysql2/promise");
+const { Client } = require("pg");
 const { Sequelize } = require("sequelize");
 
 module.exports = class CountryDataAccess {
@@ -10,15 +10,35 @@ module.exports = class CountryDataAccess {
   async createTables() {
     const { host, port, user, password, database } = config;
     // connect to db
-    const sequelize = new Sequelize(database, user, password, {
-      dialect: "mysql",
-      host: host,
-      port: port,
-    });
+    this.sequelize = new Sequelize(
+      `postgres://${user}:${password}@${host}:${port}/${database}`,
+      { logging: false }
+    );
 
     // init Models and add them with FK and PK restrictions to the db object
-    this.AssignmentCriteria = sequelize.define(
-      "AssignmentCriteria",
+    this.Reservation = this.sequelize.define(
+      "reservation",
+      {
+        dni: { type: Sequelize.STRING },
+        phone: { type: Sequelize.STRING },
+        reservation_code: { type: Sequelize.STRING, primaryKey: true },
+        date: { type: Sequelize.DATE },
+        assigned: { type: Sequelize.BOOLEAN },
+        vaccination_period_id: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "vaccination_period",
+            key: "id",
+          },
+        },
+        turn: { type: Sequelize.INTEGER },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.AssignmentCriteria = this.sequelize.define(
+      "assignment_criteria",
       {
         function: { type: Sequelize.STRING },
       },
@@ -27,8 +47,8 @@ module.exports = class CountryDataAccess {
       }
     );
 
-    this.Vaccine = sequelize.define(
-      "Vaccine",
+    this.Vaccine = this.sequelize.define(
+      "vaccine",
       {
         name: { type: Sequelize.STRING },
         recommendations: { type: Sequelize.STRING },
@@ -38,30 +58,30 @@ module.exports = class CountryDataAccess {
       }
     );
 
-    this.VaccinationPeriod = sequelize.define(
-      "VaccinationPeriod",
+    this.VaccinationPeriod = this.sequelize.define(
+      "vaccination_period",
       {
-        vaccineAmount: { type: Sequelize.INTEGER },
-        dateFrom: { type: Sequelize.DATE },
-        dateTo: { type: Sequelize.DATE },
-        vacCenterId: {
+        vaccine_amount: { type: Sequelize.INTEGER },
+        date_from: { type: Sequelize.DATE },
+        date_to: { type: Sequelize.DATE },
+        vac_center_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VacCenter",
+            model: "vac_center",
             key: "id",
           },
         },
-        assignmentCriteriaId: {
+        assignment_criteria_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "AssignmentCriteria",
+            model: "assignment_criteria",
             key: "id",
           },
         },
-        vaccineId: {
+        vaccine_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Vaccine",
+            model: "vaccine",
             key: "id",
           },
         },
@@ -70,8 +90,8 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.State = sequelize.define(
-      "State",
+    this.State = this.sequelize.define(
+      "state",
       {
         code: { type: Sequelize.INTEGER, primaryKey: true },
         name: { type: Sequelize.STRING },
@@ -80,16 +100,16 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.Zone = sequelize.define(
-      "Zone",
+    this.Zone = this.sequelize.define(
+      "zone",
       {
         code: {
           type: Sequelize.INTEGER,
         },
-        stateCode: {
+        state_code: {
           type: Sequelize.INTEGER,
           references: {
-            model: "State",
+            model: "state",
             key: "code",
           },
         },
@@ -99,13 +119,13 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.VacCenter = sequelize.define(
-      "VacCenter",
+    this.VacCenter = this.sequelize.define(
+      "vac_center",
       {
-        zoneId: {
+        zone_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Zone",
+            model: "zone",
             key: "id",
           },
         },
@@ -115,51 +135,49 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.Slot = sequelize.define(
-      "Slot",
+    this.Slot = this.sequelize.define(
+      "slot",
       {
-        assignmentCriteriaId: {
+        assignment_criteria_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "AssignmentCriteria",
+            model: "assignment_criteria",
             key: "id",
           },
         },
-        availableSlots: { type: Sequelize.INTEGER },
-        totalSlots: { type: Sequelize.INTEGER },
-        zoneName: { type: Sequelize.STRING },
-        stateName: { type: Sequelize.STRING },
+        available_slots: { type: Sequelize.INTEGER },
+        total_slots: { type: Sequelize.INTEGER },
         //PKs
         date: { type: Sequelize.DATE, primaryKey: true },
         turn: { type: Sequelize.INTEGER, primaryKey: true },
-        stateCode: {
+        state_code: {
           type: Sequelize.INTEGER,
           references: {
-            model: "State",
+            model: "state",
             key: "code",
           },
           primaryKey: true,
         },
-        vacCenterId: {
+        vac_center_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VacCenter",
+            model: "vac_center",
             key: "id",
           },
           primaryKey: true,
         },
-        zoneId: {
+        zone_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Zone",
+            model: "zone",
             key: "id",
           },
           primaryKey: true,
         },
-        vaccinationPeriodId: {
+        vaccination_period_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VaccinationPeriod",
+            model: "vaccination_period",
             key: "id",
           },
           primaryKey: true,
@@ -177,103 +195,125 @@ module.exports = class CountryDataAccess {
     await this.Zone.sync({ force: false });
     await this.VacCenter.sync({ force: false });
     await this.VaccinationPeriod.sync({ force: false });
+    await this.Reservation.sync({ force: false });
     await this.Slot.sync({ force: false });
-    // await this.VaccinationPeriod.sync({ force: false });
-    // await this.VacCenter.sync({ force: false });
   }
-
+  async createTestData() {
+    await this.Vaccine.create({
+      name: "Phizer",
+    });
+    await this.State.create({
+      name: "Montevideo",
+      code: 1,
+    });
+    await this.Zone.create({
+      code: 1,
+      name: "Centro",
+      state_code: 1,
+    });
+    await this.VacCenter.create({
+      name: "Española",
+      zone_id: 1,
+    });
+    await this.VaccinationPeriod.create({
+      vaccine_amount: 300,
+      date_from: new Date("02-02-2021"),
+      date_to: new Date("03-03-2021"),
+      vac_center_id: 1,
+      assignment_criteria_id: 1,
+      vaccine_id: 1,
+    });
+    await this.Reservation.create({
+      dni: "49190954",
+      phone: "098259045",
+      reservation_code: "1RC",
+      date: new Date(),
+      assigned: true,
+      vaccination_period_id: 1,
+      turn: 1,
+    });
+    await this.Slot.create({
+      assignment_criteria_id: 1,
+      available_slots: 50,
+      total_slots: 50,
+      zone_name: "Centro",
+      state_name: "Montevideo",
+      date: new Date("02-02-2021"),
+      turn: 1,
+      state_code: 1,
+      vac_center_id: 1,
+      zone_id: 1,
+      vaccination_period_id: 1,
+    });
+  }
   async updateSlot(data) {
-    //This method is supposed to make a big update query that finds the wanted slot
+    // await this.createTestData();
     const updateQuery = this.bindQuery(data).replace(/\n/g, " ");
-    console.log(updateQuery);
-    this.connection
-      .query(updateQuery, {
-        replacements: {
-          reservationDate: data.reservationDate,
-          zoneCode: data.zoneCode,
-          stateCode: data.stateCode,
-          assignmentCriteriasIds: data.assignmentCriteriasIds,
-        },
+    return this.connection
+      .query(updateQuery)
+      .then((data) => {
+        if (data.rows[0]) {
+          return JSON.parse(data.rows[0]["concat"]);
+        }
+        return null;
       })
-      .then((data) => console.log("data is", data))
-      .catch((err) => console.log("error is", err));
-    return {};
-    // await this.Vaccine.create({
-    //   name: "Phizer",
-    // });
-    // await await this.State.create({
-    //   name: "Montevideo",
-    //   code: 1,
-    // });
-    // await this.Zone.create({
-    //   code: 1,
-    //   name: "Centro",
-    //   stateCode: 1,
-    // });
-    // await this.VacCenter.create({
-    //   name: "Española",
-    //   zoneId: 1,
-    // });
-    // await this.AssignmentCriteria.create({
-    //   function:
-    //     "new Date().getFullYear() - new Date(person.DateOfBirth).getFullYear() > 90",
-    // });
-    // await this.VaccinationPeriod.create({
-    //   vaccineAmount: 300,
-    //   dateFrom: new Date("02-02-2021"),
-    //   dateTo: new Date("03-03-2021"),
-    //   vacCenterId: 1,
-    //   assignmentCriteriaId: 1,
-    //   vaccineId: 1,
-    // });
-    // await this.Slot.create({
-    //   assignmentCriteriaId: 1,
-    //   availableSlots: 50,
-    //   totalSlots: 50,
-    //   zoneName: "Centro",
-    //   stateName: "Montevideo",
-    //   date: new Date("02-02-2021"),
-    //   turn: 1,
-    //   stateCode: 1,
-    //   vacCenterId: 1,
-    //   zoneId: 1,
-    //   vaccinationPeriodId: 1,
-    // });
+      .catch((err) => {
+        console.log("error is", err);
+        return null;
+      });
   }
 
   async initialize() {
     // create db if it doesn't already exist
-    const { host, port, user, password, database } = config;
-    this.connection = await mysql.createConnection({
-      host,
-      port,
-      user,
-      password,
+    const { database } = config;
+    this.connection = new Client({
+      user: "postgres",
+      host: "localhost",
+      password: "password",
+      port: 5432,
     });
-    await this.connection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${database}\`;`
-    );
+    this.connection.connect();
+    this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
+      if (res.rows.filter((d) => d.datname === database).length < 1) {
+        this.connection.query(`CREATE DATABASE ${database};`, (err, res) => {
+          console.log(err, res);
+          this.connection.end();
+        });
+      }
+    });
     this.createTables();
+    this.connection = new Client({
+      user: "postgres",
+      host: "localhost",
+      password: "password",
+      database: database,
+      port: 5432,
+    });
+    this.connection.connect();
+  }
+
+  printAssignmentCriterias(arr) {
+    let str = "";
+    arr.forEach((e) => (str = str + e + ","));
+    str = str.length > 0 ? str.slice(0, str.length - 1) : "-1";
+    return str;
   }
 
   bindQuery(data) {
-    return `UPDATE SLOT sl, (SELECT date,turn,s.stateCode,vacCenterId,zoneId,vaccinationPeriodId,availableSlots FROM 
-      SLOT s, ZONE z
-      WHERE (
-      s.date = :reservationDate AND
-      s.availableSlots > 0 AND
-      s.zoneId = z.id AND z.code = :zoneCode AND 
-      s.stateCode = :stateCode AND
-      s.assignmentCriteriaId IN :assignmentCriteriasIds ) 
-      ORDER BY s.turn ${data.turn === 3 ? "DESC" : "ASC"}
-      LIMIT 1) f 
-    SET sl.availableSlots = f.availableSlots-1
-    WHERE (
-    sl.date = f.date AND
-    sl.turn = f.turn AND
-    sl.stateCode = f.stateCode AND
-    sl.vacCenterId = f.vacCenterId AND
-    sl.zoneId = f.zoneId AND
-    sl.vaccinationPeriodId = f.vaccinationPeriodId)`;
+    return `UPDATE slot s SET available_slots = s.available_slots-1 where
+    ROW(s.date,s.turn,s.state_code, s.vac_center_id,s.zone_id,s.vaccination_period_id,s.available_slots) =
+    (SELECT date,turn,s.state_code,vac_center_id,zone_id,vaccination_period_id,available_slots FROM 
+           slot s, zone z
+              WHERE (
+              s.date = '${data.reservationDate}' AND
+              s.available_slots > 0 AND
+              s.zone_id = z.id AND z.code = ${data.zoneCode} AND 
+              s.state_code = ${data.stateCode} AND
+              s.assignment_criteria_id IN (${this.printAssignmentCriterias(
+                data.assignmentCriteriasIds
+              )}) ) 
+              ORDER BY s.turn ${data.turn === 3 ? "DESC" : "ASC"}
+              LIMIT 1)
+    RETURNING CONCAT('{"turn" :', s.turn,',"vacCenterCode":', s.vac_center_id, ',"vaccinationPeriodId": ', s.vaccination_period_id,'}');`;
   }
 };
