@@ -5,11 +5,11 @@ const MQReservations = require("../communication/mqReservations");
 const uniqid = require("uniqid");
 
 module.exports = class ReservationController {
-  constructor() {
+  constructor(countryDataAccess) {
     this.pipes = new Pipes();
     this.assignmentCriterias = new AssignmentCriterias();
     this.mq = new MQReservations();
-    this.init();
+    this.countryDataAccess = countryDataAccess;
   }
 
   async fetchPerson(personId) {
@@ -34,24 +34,20 @@ module.exports = class ReservationController {
     }
   }
 
-  sendReservationToMQ(person, slot, requestBody, reservationCode) {
+  async sendReservationToMQ(person, slot, requestBody, reservationCode) {
     try {
       const mq_reservation = {
+        phone: requestBody.phone,
         dni: person.DocumentId,
         reservationCode,
         assigned: slot ? true : false,
         vaccinationPeriodId: slot ? slot.vaccinationPeriodId : null,
-        slotId: slot ? slot.slotId : null,
         date: requestBody.reservationDate,
         turn: slot ? slot.turn : requestBody.turn,
       };
-      this.mq.add(mq_reservation);
-      console.log("LLEGUE A MANDAR A LA MQ");
+      await this.mq.add(mq_reservation);
     } catch {
-      return {
-        body: "Error en la conexión con Redis al intentar agregar la reserva",
-        status: 500,
-      };
+      return "Error en la MQ";
     }
   }
 
@@ -64,7 +60,6 @@ module.exports = class ReservationController {
       }
     });
     return resultArray.filter((e) => e != -1);
-    console.log("the criterias are ", validCriterias);
   }
 
   async addReservation(body) {
@@ -87,34 +82,39 @@ module.exports = class ReservationController {
 
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
     //Step 4 (SQL) - Update de cupo libre. Deberia devolver el slot
-
-    const slotAssigned = {
-      vaccinationPeriodId: 5,
-      slotId: 8,
-      turn: 1, //si no se pudo asignar esto viene null
-      department: "Montevideo",
-      zone: "Centro",
-      neighborhood: "Barrio Sur",
-    };
-
+    const slotData = await this.countryDataAccess.updateSlot({
+      turn: body.turn,
+      reservationDate: body.reservationDate,
+      stateCode: body.stateCode,
+      zoneCode: body.zoneCode,
+      assignmentCriteriasIds: validCriterias,
+    });
     // Step 5
     //Objeto MQ
     let reservationCode = uniqid();
-    err = this.sendReservationToMQ(person, slotAssigned, body, reservationCode);
+    err = await this.sendReservationToMQ(
+      person,
+      slotData,
+      body,
+      reservationCode
+    );
     if (err) {
-      return err;
+      return {
+        body: err,
+        status: 500,
+      };
     }
-    // If pudo reservar ->  Dejo la reserva con cupo en la MQ
-    if (slotAssigned) {
+    // If pudo reservar ->  Retorno HTTP
+    if (slotData) {
       return {
         body: {
           dni: person.id,
           reservationCode,
-          departamento: 0,
-          zona: 0,
-          codigo_vacunatorio: 0,
-          date: body.reservationDate,
-          turno: 1,
+          state: body.stateCode,
+          zone: body.zoneCode,
+          vacCenterCode: slotData.vacCenterCode,
+          vaccinationDate: body.reservationDate,
+          turn: slotData.turn,
           timestampI: new Date(body.timestampI).toISOString(),
           timestampR: new Date(Date.now()).toISOString(),
           timestampD: Date.now() - new Date(body.timestampI) + " ms",
@@ -124,11 +124,11 @@ module.exports = class ReservationController {
     } else {
       return {
         body: {
-          reservationCode: reservationCode,
-          mensaje: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
-          timestampI: body.timestampI,
-          timestampR: Date.now(),
-          timestampD: Date.now() - timestampI,
+          reservationCode,
+          message: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
+          timestampI: new Date(body.timestampI).toISOString(),
+          timestampR: new Date(Date.now()).toISOString(),
+          timestampD: Date.now() - new Date(body.timestampI) + " ms",
         },
         status: 200,
       };
