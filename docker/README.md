@@ -30,10 +30,12 @@ Compose es una herramienta para definir y ejecutar aplicaciones Docker en múlti
 - `docker-compose up mongo`
 - Acceder al cliente de mongodb `docker run -it --network sa-network --rm mongo mongo --host mongo test`
 
-## PGADMIN4
+## POSTGRE & PGADMIN4
 
 - `docker run --name postgresql-container -p 5432:5432 -e POSTGRES_PASSWORD=password -d postgres`
 - `docker run --rm -p 5050:5050 thajeztah/pgadmin4`
+
+## Acceder a PGAdmin4 http://localhost:5050/browser/
 
 ##Borrar Base de datos entera
 DROP TABLE IF EXISTS reservation CASCADE;

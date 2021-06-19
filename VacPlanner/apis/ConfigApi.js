@@ -25,7 +25,6 @@ module.exports = class ConfigApi {
     router.post("/assignmentCriteria", async (ctx, next) => {
       //Step 1 - Agregar a la bd y recuperar el id
       const id = await countryDataAccess.addCriteria(ctx.request.body.function);
-      console.log("the id is", id);
       let success = null;
       if (id) {
         //Step 2 - Agregar a Redis para mantener sincronizado

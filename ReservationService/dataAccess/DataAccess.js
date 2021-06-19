@@ -247,7 +247,7 @@ module.exports = class CountryDataAccess {
     });
   }
   async updateSlot(data) {
-    // await this.createTestData();
+    await this.createTestData();
     const updateQuery = this.bindQuery(data).replace(/\n/g, " ");
     return this.connection
       .query(updateQuery)

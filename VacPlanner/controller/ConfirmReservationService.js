@@ -1,35 +1,33 @@
-const Queue = require('bull');
-const http = require('http');
-const axios = require('axios');
-const reservations = new Queue('Reservations');
+const Queue = require("bull");
+const http = require("http");
+const axios = require("axios");
+const reservations = new Queue("Reservations");
 
 module.exports = class ConfirmReservationService {
-    constructor() {
-        this.init();
+  constructor() {
+    this.init();
+  }
+
+  async sendReservation(reservation) {
+    try {
+      const response = await axios.post(
+        "http://localhost:5007/sms",
+        reservation
+      );
+      return response.data;
+    } catch (error) {
+      return null;
     }
+  }
 
-    async sendReservation(reservation) {
-        try {
-          const response = await axios.post(
-            "http://localhost:5007/sms"
-          , reservation
-          );
-          return response.data;
-        } catch (error) {
-          return null;
-        }
-      }
+  init() {
+    reservations.process(async (job) => {
+      //pego a la base
 
-    init(){
-        console.log("toy aca init")
-        reservations.process(async (job) => {
-            //pego a la base
+      //pego a la sms api
+      this.sendReservation(job.data);
 
-            //pego a la sms api
-            this.sendReservation(job.data)
-
-            /*try {
-                console.log("toy aca ")
+      /*try {
                 const postReq = await http.request({
                   host: 'localhost',port: "5007",path: '/sms',headers: {'Content-Type': 'application/json'},method: "POST"}
                   , function(response) {
@@ -48,6 +46,6 @@ module.exports = class ConfirmReservationService {
               } catch (error) {
                 console.log(error, counter)
               }*/
-        });
-    }
-}
+    });
+  }
+};
