@@ -9,6 +9,8 @@ module.exports = class CountryDataAccess {
   }
 
   async createTables() {
+    console.log("Connecting to Database...");
+    await this.connectDB();
     const { host, port, user, password, database } = config;
     // connect to db
     this.sequelize = new Sequelize(
@@ -16,7 +18,28 @@ module.exports = class CountryDataAccess {
       { logging: false }
     );
 
-    // init Assignment criteria model and add them to the db object
+    // init Models and add them with FK and PK restrictions to the db object
+    this.Reservation = this.sequelize.define(
+      "reservation",
+      {
+        dni: { type: Sequelize.STRING },
+        phone: { type: Sequelize.STRING },
+        reservation_code: { type: Sequelize.STRING, primaryKey: true },
+        date: { type: Sequelize.DATE },
+        assigned: { type: Sequelize.BOOLEAN },
+        vaccination_period_id: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "vaccination_period",
+            key: "id",
+          },
+        },
+        turn: { type: Sequelize.INTEGER },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
     this.AssignmentCriteria = this.sequelize.define(
       "assignment_criteria",
       {
@@ -27,8 +50,8 @@ module.exports = class CountryDataAccess {
       }
     );
 
-    this.Vaccine = sequelize.define(
-      "Vaccine",
+    this.Vaccine = this.sequelize.define(
+      "vaccine",
       {
         name: { type: Sequelize.STRING },
         recommendations: { type: Sequelize.STRING },
@@ -38,30 +61,30 @@ module.exports = class CountryDataAccess {
       }
     );
 
-    this.VaccinationPeriod = sequelize.define(
-      "VaccinationPeriod",
+    this.VaccinationPeriod = this.sequelize.define(
+      "vaccination_period",
       {
-        vaccineAmount: { type: Sequelize.INTEGER },
-        dateFrom: { type: Sequelize.DATE },
-        dateTo: { type: Sequelize.DATE },
-        vacCenterId: {
+        vaccine_amount: { type: Sequelize.INTEGER },
+        date_from: { type: Sequelize.DATE },
+        date_to: { type: Sequelize.DATE },
+        vac_center_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VacCenter",
+            model: "vac_center",
             key: "id",
           },
         },
-        assignmentCriteriaId: {
+        assignment_criteria_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "AssignmentCriteria",
+            model: "assignment_criteria",
             key: "id",
           },
         },
-        vaccineId: {
+        vaccine_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Vaccine",
+            model: "vaccine",
             key: "id",
           },
         },
@@ -70,8 +93,8 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.State = sequelize.define(
-      "State",
+    this.State = this.sequelize.define(
+      "state",
       {
         code: { type: Sequelize.INTEGER, primaryKey: true },
         name: { type: Sequelize.STRING },
@@ -80,16 +103,16 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.Zone = sequelize.define(
-      "Zone",
+    this.Zone = this.sequelize.define(
+      "zone",
       {
         code: {
           type: Sequelize.INTEGER,
         },
-        stateCode: {
+        state_code: {
           type: Sequelize.INTEGER,
           references: {
-            model: "State",
+            model: "state",
             key: "code",
           },
         },
@@ -99,13 +122,13 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.VacCenter = sequelize.define(
-      "VacCenter",
+    this.VacCenter = this.sequelize.define(
+      "vac_center",
       {
-        zoneId: {
+        zone_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Zone",
+            model: "zone",
             key: "id",
           },
         },
@@ -115,51 +138,49 @@ module.exports = class CountryDataAccess {
         freezeTableName: true,
       }
     );
-    this.Slot = sequelize.define(
-      "Slot",
+    this.Slot = this.sequelize.define(
+      "slot",
       {
-        assignmentCriteriaId: {
+        assignment_criteria_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "AssignmentCriteria",
+            model: "assignment_criteria",
             key: "id",
           },
         },
-        availableSlots: { type: Sequelize.INTEGER },
-        totalSlots: { type: Sequelize.INTEGER },
-        zoneName: { type: Sequelize.STRING },
-        stateName: { type: Sequelize.STRING },
+        available_slots: { type: Sequelize.INTEGER },
+        total_slots: { type: Sequelize.INTEGER },
         //PKs
         date: { type: Sequelize.DATE, primaryKey: true },
         turn: { type: Sequelize.INTEGER, primaryKey: true },
-        stateCode: {
+        state_code: {
           type: Sequelize.INTEGER,
           references: {
-            model: "State",
+            model: "state",
             key: "code",
           },
           primaryKey: true,
         },
-        vacCenterId: {
+        vac_center_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VacCenter",
+            model: "vac_center",
             key: "id",
           },
           primaryKey: true,
         },
-        zoneId: {
+        zone_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "Zone",
+            model: "zone",
             key: "id",
           },
           primaryKey: true,
         },
-        vaccinationPeriodId: {
+        vaccination_period_id: {
           type: Sequelize.INTEGER,
           references: {
-            model: "VaccinationPeriod",
+            model: "vaccination_period",
             key: "id",
           },
           primaryKey: true,
@@ -177,11 +198,57 @@ module.exports = class CountryDataAccess {
     await this.Zone.sync({ force: false });
     await this.VacCenter.sync({ force: false });
     await this.VaccinationPeriod.sync({ force: false });
+    await this.Reservation.sync({ force: false });
     await this.Slot.sync({ force: false });
-    // await this.VaccinationPeriod.sync({ force: false });
-    // await this.VacCenter.sync({ force: false });
   }
-
+  async createTestData() {
+    await this.Vaccine.create({
+      name: "Phizer",
+    });
+    await this.State.create({
+      name: "Montevideo",
+      code: 1,
+    });
+    await this.Zone.create({
+      code: 1,
+      name: "Centro",
+      state_code: 1,
+    });
+    await this.VacCenter.create({
+      name: "Española",
+      zone_id: 1,
+    });
+    await this.VaccinationPeriod.create({
+      vaccine_amount: 300,
+      date_from: new Date("02-02-2021"),
+      date_to: new Date("03-03-2021"),
+      vac_center_id: 1,
+      assignment_criteria_id: 1,
+      vaccine_id: 1,
+    });
+    await this.Reservation.create({
+      dni: "49190954",
+      phone: "098259045",
+      reservation_code: "1RC",
+      date: new Date(),
+      assigned: true,
+      vaccination_period_id: 1,
+      turn: 1,
+    });
+    await this.Slot.create({
+      assignment_criteria_id: 1,
+      available_slots: 50,
+      total_slots: 50,
+      zone_name: "Centro",
+      state_name: "Montevideo",
+      date: new Date("02-02-2021"),
+      turn: 1,
+      state_code: 1,
+      vac_center_id: 1,
+      zone_id: 1,
+      vaccination_period_id: 1,
+    });
+  }
   addCriteria(fun) {
     return this.AssignmentCriteria.create({
       function: JSON.stringify(fun),
@@ -436,15 +503,29 @@ module.exports = class CountryDataAccess {
       password: "password",
       port: 5432,
     });
-    this.connection.connect();
+    await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (res.rows.filter((d) => d.datname === database).length < 1) {
-        this.connection.query(`CREATE DATABASE ${database};`, (err, res) => {
-          console.log(err, res);
-          this.connection.end();
+        console.log("Creating Database...");
+        this.connection.query(`CREATE DATABASE ${database};`, async () => {
+          this.createTables();
         });
+      } else {
+        this.createTables();
       }
     });
-    this.createTables();
+  }
+
+  async connectDB() {
+    const { database } = config;
+    await this.connection.end();
+    this.connection = new Client({
+      user: "postgres",
+      host: "localhost",
+      password: "password",
+      database: database,
+      port: 5432,
+    });
+    await this.connection.connect();
   }
 };

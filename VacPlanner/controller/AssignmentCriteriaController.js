@@ -1,10 +1,12 @@
 const redis = require("redis");
 
 module.exports = class AssignmentCriteriaController {
-  constructor() {
+  constructor(countryDataAccess) {
+    this.countryDataAccess = countryDataAccess;
     this.init();
     this.client.on("error", () => console.log("abrazo"));
   }
+
   init = () => {
     try {
       this.client = redis.createClient();
@@ -20,6 +22,17 @@ module.exports = class AssignmentCriteriaController {
       });
     });
   };
+
+  async setTestData() {
+    await this.setCriterias([]);
+    const fakeFunction =
+      "new Date().getFullYear() - new Date(person.DateOfBirth).getFullYear() > 20";
+    const id = await this.countryDataAccess.addCriteria(fakeFunction);
+    const ctx = { request: { body: { function: fakeFunction } } };
+    await this.addRedis(ctx, id);
+    await this.countryDataAccess.createTestData();
+  }
+
   clientSet = (arr) => {
     return new Promise((fullfill, reject) => {
       this.client.set(
@@ -57,7 +70,7 @@ module.exports = class AssignmentCriteriaController {
         index: id,
       };
       //Ir a buscar a redis
-      const allCriterias = await this.getCriterias() || [];
+      const allCriterias = (await this.getCriterias()) || [];
       //Agregar a redis
       allCriterias.push(newCriteria);
       await this.setCriterias(allCriterias);
