@@ -220,7 +220,7 @@ module.exports = class CountryDataAccess {
     });
     await this.VaccinationPeriod.create({
       vaccine_amount: 300,
-      date_from: new Date("02-02-2021"),
+      date_from: new Date("01-02-2021"),
       date_to: new Date("03-03-2021"),
       vac_center_id: 1,
       assignment_criteria_id: 1,
@@ -241,7 +241,7 @@ module.exports = class CountryDataAccess {
       total_slots: 50,
       zone_name: "Centro",
       state_name: "Montevideo",
-      date: new Date("02-02-2021"),
+      date: new Date("12-12-2021"),
       turn: 1,
       state_code: 1,
       vac_center_id: 1,

@@ -265,7 +265,7 @@ module.exports = class CountryDataAccess {
     (SELECT date,turn,s.state_code,vac_center_id,zone_id,vaccination_period_id,available_slots FROM 
            slot s, zone z
               WHERE (
-              s.date = '${data.reservationDate}' AND
+              s.date between '${data.reservationDate} 00:00:01'  AND '${data.reservationDate} 23:59:59' AND
               s.available_slots > 0 AND
               s.zone_id = z.id AND z.code = ${data.zoneCode} AND 
               s.state_code = ${data.stateCode} AND

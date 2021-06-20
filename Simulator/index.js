@@ -1,38 +1,17 @@
 var fs = require("fs");
 var csv = require("csv");
-var http = require("http");
+var axios = require("axios").default;
+const { lookup } = require("dns");
 
 const dataset = [];
 let counter = 0;
 async function reservationRequest(reservation, counter) {
   try {
-    const postReq = http.request(
-      {
-        agent: false,
-        host: "localhost",
-        port: "5004",
-        path: "/reservations",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      },
-      function (response) {
-        var str = "";
-        response.on("data", function (chunk) {
-          str += chunk;
-        });
-        response.on("end", function () {
-          console.log(str);
-          return str;
-        });
-      }
-    );
-    reservation.timestampI = Date.now();
-    postReq.write(JSON.stringify(reservation));
-    postReq.end();
+    return axios.post("http://localhost:5004/reservations", reservation)
+    console.log(response.data, counter)
+    return response.data;
   } catch (error) {
-    console.log(error, counter);
+    console.log(error, counter)
   }
 }
 
@@ -58,23 +37,37 @@ parser.on("readable", function () {
   }
 });
 
-parser.on("error", function (err) {});
+parser.on("error", function (err) { });
 
 parser.on("finish", function () {
   initApi();
 });
 
-readStream1.pipe(parser);
+//readStream1.pipe(parser);
 //readStream2.pipe(parser);
-//readStream3.pipe(parser);
+readStream3.pipe(parser);
 
 const initApi = () => {
   console.log("finish init");
-
-  dataset.forEach((r) => {
-    if (counter < 1000) {
+  const loop = () => {
+    const reservation = dataset[counter];
+    reservation.timestampI = Date.now();
+    reservationRequest(reservation, counter).then((res) => {
+      console.log(res.data, counter);
       counter++;
-      reservationRequest(r, counter);
-    }
-  });
+      loop();
+    }).catch((error) => {
+      console.log(error.response.data, counter)
+      counter++;
+      loop();
+    })
+  }
+
+  loop();
+  // dataset.forEach((r) => {
+  //   if(counter < 4000) {
+  //     counter++;
+  //     reservationRequest(r, counter);
+  //   }
+  // });
 };

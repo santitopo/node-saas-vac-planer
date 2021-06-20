@@ -3,6 +3,7 @@ const axios = require("axios");
 const AssignmentCriterias = require("../services/assignmentCriterias");
 const MQReservations = require("../communication/mqReservations");
 const uniqid = require("uniqid");
+var moment = require('moment');
 
 module.exports = class ReservationController {
   constructor(countryDataAccess) {
@@ -62,6 +63,20 @@ module.exports = class ReservationController {
     return resultArray.filter((e) => e != -1);
   }
 
+  parseDate(reservationDate){
+      const newDate = moment(reservationDate);
+      
+      if(newDate.isValid()){
+        const year  = newDate.year();
+        const month = (newDate.month()+1).toString().length == 1 ? "0" + (newDate.month()+1) : (newDate.month()+1)
+        const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
+        
+        const parsedDate = year + "-" + month + "-" + day;
+        return parsedDate;
+      }
+      
+  }
+
   async addReservation(body) {
     //Step 1 - Validators
     let err;
@@ -82,13 +97,18 @@ module.exports = class ReservationController {
 
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
     //Step 4 (SQL) - Update de cupo libre. Deberia devolver el slot
+    const reservationDate = this.parseDate(body.reservationDate);
+    if(!reservationDate){
+      return {body: "Fecha mal provista", status: 400}
+    }
     const slotData = await this.countryDataAccess.updateSlot({
       turn: body.turn,
-      reservationDate: body.reservationDate,
+      reservationDate: reservationDate,
       stateCode: body.stateCode,
       zoneCode: body.zoneCode,
       assignmentCriteriasIds: validCriterias,
     });
+    console.log(slotData);
     // Step 5
     //Objeto MQ
     let reservationCode = uniqid();
@@ -113,7 +133,7 @@ module.exports = class ReservationController {
           state: body.stateCode,
           zone: body.zoneCode,
           vacCenterCode: slotData.vacCenterCode,
-          vaccinationDate: body.reservationDate,
+          vaccinationDate: reservationDate,
           turn: slotData.turn,
           timestampI: new Date(body.timestampI).toISOString(),
           timestampR: new Date(Date.now()).toISOString(),
