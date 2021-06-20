@@ -8,6 +8,8 @@ module.exports = class CountryDataAccess {
   }
 
   async createTables() {
+    console.log("Connecting to Database...");
+    await this.connectDB();
     const { host, port, user, password, database } = config;
     // connect to db
     this.sequelize = new Sequelize(
@@ -198,56 +200,8 @@ module.exports = class CountryDataAccess {
     await this.Reservation.sync({ force: false });
     await this.Slot.sync({ force: false });
   }
-  async createTestData() {
-    await this.Vaccine.create({
-      name: "Phizer",
-    });
-    await this.State.create({
-      name: "Montevideo",
-      code: 1,
-    });
-    await this.Zone.create({
-      code: 1,
-      name: "Centro",
-      state_code: 1,
-    });
-    await this.VacCenter.create({
-      name: "Española",
-      zone_id: 1,
-    });
-    await this.VaccinationPeriod.create({
-      vaccine_amount: 300,
-      date_from: new Date("02-02-2021"),
-      date_to: new Date("03-03-2021"),
-      vac_center_id: 1,
-      assignment_criteria_id: 1,
-      vaccine_id: 1,
-    });
-    await this.Reservation.create({
-      dni: "49190954",
-      phone: "098259045",
-      reservation_code: "1RC",
-      date: new Date(),
-      assigned: true,
-      vaccination_period_id: 1,
-      turn: 1,
-    });
-    await this.Slot.create({
-      assignment_criteria_id: 1,
-      available_slots: 50,
-      total_slots: 50,
-      zone_name: "Centro",
-      state_name: "Montevideo",
-      date: new Date("02-02-2021"),
-      turn: 1,
-      state_code: 1,
-      vac_center_id: 1,
-      zone_id: 1,
-      vaccination_period_id: 1,
-    });
-  }
+
   async updateSlot(data) {
-    // await this.createTestData();
     const updateQuery = this.bindQuery(data).replace(/\n/g, " ");
     return this.connection
       .query(updateQuery)
@@ -272,16 +226,22 @@ module.exports = class CountryDataAccess {
       password: "password",
       port: 5432,
     });
-    this.connection.connect();
+    await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (res.rows.filter((d) => d.datname === database).length < 1) {
-        this.connection.query(`CREATE DATABASE ${database};`, (err, res) => {
-          console.log(err, res);
-          this.connection.end();
+        console.log("Creating Database...");
+        this.connection.query(`CREATE DATABASE ${database};`, async () => {
+          this.createTables();
         });
+      } else {
+        this.createTables();
       }
     });
-    this.createTables();
+  }
+
+  async connectDB() {
+    const { database } = config;
+    await this.connection.end();
     this.connection = new Client({
       user: "postgres",
       host: "localhost",
@@ -289,7 +249,7 @@ module.exports = class CountryDataAccess {
       database: database,
       port: 5432,
     });
-    this.connection.connect();
+    await this.connection.connect();
   }
 
   printAssignmentCriterias(arr) {

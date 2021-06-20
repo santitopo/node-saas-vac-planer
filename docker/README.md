@@ -37,6 +37,8 @@ Compose es una herramienta para definir y ejecutar aplicaciones Docker en múlti
 
 ## Acceder a PGAdmin4 http://localhost:5050/browser/
 
+- Luego de acceder, boton derecho sobre "servers", y create new server. Poner un nombre cualquiera, y en la pestaña de connection, poner la ip de tu compu (ver ip local en ipconfig), y user= postgres y password=password
+
 ##Borrar Base de datos entera
 DROP TABLE IF EXISTS reservation CASCADE;
 DROP TABLE IF EXISTS slot CASCADE;
