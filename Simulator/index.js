@@ -1,15 +1,12 @@
 var fs = require("fs");
 var csv = require("csv");
 var axios = require("axios").default;
-const { lookup } = require("dns");
 
 const dataset = [];
 let counter = 0;
 async function reservationRequest(reservation, counter) {
   try {
     return axios.post("http://localhost:5004/reservations", reservation)
-    console.log(response.data, counter)
-    return response.data;
   } catch (error) {
     console.log(error, counter)
   }
@@ -43,9 +40,9 @@ parser.on("finish", function () {
   initApi();
 });
 
-//readStream1.pipe(parser);
+readStream1.pipe(parser);
 //readStream2.pipe(parser);
-readStream3.pipe(parser);
+//readStream3.pipe(parser);
 
 const initApi = () => {
   console.log("finish init");

@@ -108,7 +108,6 @@ module.exports = class ReservationController {
       zoneCode: body.zoneCode,
       assignmentCriteriasIds: validCriterias,
     });
-    console.log(slotData);
     // Step 5
     //Objeto MQ
     let reservationCode = uniqid();
