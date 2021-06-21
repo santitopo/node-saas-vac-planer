@@ -18,6 +18,51 @@ module.exports = class CountryDataAccess {
     );
 
     // init Models and add them with FK and PK restrictions to the db object
+
+    this.Permission = this.sequelize.define(
+      "permission",
+      {
+        name: { type: Sequelize.STRING, unique: true },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.User = this.sequelize.define(
+      "sys_user",
+      {
+        user_name: { type: Sequelize.STRING, unique: true },
+        password: { type: Sequelize.STRING },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.UserPermission = this.sequelize.define(
+      "user_permission",
+      {
+        permission_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "permission",
+            key: "id",
+          },
+        },
+        user_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "sys_user",
+            key: "id",
+          },
+        },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+
     this.Reservation = this.sequelize.define(
       "reservation",
       {
@@ -191,6 +236,9 @@ module.exports = class CountryDataAccess {
     );
 
     // Sync models with database
+    await this.Permission.sync({ force: false });
+    await this.User.sync({ force: false });
+    await this.UserPermission.sync({ force: false });
     await this.AssignmentCriteria.sync({ force: false });
     await this.Vaccine.sync({ force: false });
     await this.State.sync({ force: false });
