@@ -2,6 +2,9 @@ const Koa = require("koa");
 const logger = require("koa-logger");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
+const fs = require("fs");
+const jwt = require("koa-jwt");
+const publicKey = fs.readFileSync("services/config/public.key", "utf8");
 const ReservationFieldController = require("../controller/ReservationFieldController");
 const AssignmentCriteriaController = require("../controller/AssignmentCriteriaController");
 const StateController = require("../controller/StateController");
@@ -35,6 +38,7 @@ module.exports = class ConfigApi {
       slotController
     );
 
+    app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
     app.use(bodyParser());
     app.use(logger());
     router.post("/reservationfields", (ctx, next) => {

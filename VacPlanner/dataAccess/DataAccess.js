@@ -1,8 +1,14 @@
 const config = require("../../config.json");
 //const mysql = require("mysql2/promise");
 const { Client } = require("pg");
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
+const crypto = require("crypto");
 
+const permissionsQuery = `
+select p.name from sys_user u, user_permission up, permission p
+where u.user_name= $1::text
+AND up.user_id = u.id
+AND up.permission_id = p.id`;
 module.exports = class CountryDataAccess {
   constructor() {
     this.initialize();
@@ -19,6 +25,51 @@ module.exports = class CountryDataAccess {
     );
 
     // init Models and add them with FK and PK restrictions to the db object
+
+    this.Permission = this.sequelize.define(
+      "permission",
+      {
+        name: { type: Sequelize.STRING, unique: true },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.User = this.sequelize.define(
+      "sys_user",
+      {
+        user_name: { type: Sequelize.STRING, unique: true },
+        password: { type: Sequelize.STRING },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.UserPermission = this.sequelize.define(
+      "user_permission",
+      {
+        permission_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "permission",
+            key: "id",
+          },
+        },
+        user_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "sys_user",
+            key: "id",
+          },
+        },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+
     this.Reservation = this.sequelize.define(
       "reservation",
       {
@@ -192,6 +243,9 @@ module.exports = class CountryDataAccess {
     );
 
     // Sync models with database
+    await this.Permission.sync({ force: false });
+    await this.User.sync({ force: false });
+    await this.UserPermission.sync({ force: false });
     await this.AssignmentCriteria.sync({ force: false });
     await this.Vaccine.sync({ force: false });
     await this.State.sync({ force: false });
@@ -202,6 +256,53 @@ module.exports = class CountryDataAccess {
     await this.Slot.sync({ force: false });
   }
   async createTestData() {
+    const hash = crypto.createHash("md5").update("pass").digest("hex");
+    await this.Permission.create({
+      name: "vac_center_crud",
+    });
+    await this.Permission.create({
+      name: "vac_period_crud",
+    });
+    await this.Permission.create({
+      name: "state_crud",
+    });
+    await this.Permission.create({
+      name: "zone_crud",
+    });
+    await this.Permission.create({
+      name: "assignment_criteria_add",
+    });
+    await this.Permission.create({
+      name: "validation_add",
+    });
+    await this.Permission.create({
+      name: "api_crud",
+    });
+    await this.Permission.create({
+      name: "create_users",
+    });
+    await this.Permission.create({
+      name: "give_vaccine",
+    });
+    await this.Permission.create({
+      name: "query",
+    });
+    await this.User.create({
+      user_name: "santitopo",
+      password: hash,
+    });
+    await this.User.create({
+      user_name: "colominetti",
+      password: hash,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 8,
+    });
+    await this.UserPermission.create({
+      user_id: 2,
+      permission_id: 1,
+    });
     await this.Vaccine.create({
       name: "Phizer",
     });
@@ -249,6 +350,67 @@ module.exports = class CountryDataAccess {
       vaccination_period_id: 1,
     });
   }
+
+  //POST
+  async addUserPermission(userId, permissionId) {
+    console.log("llegue");
+    return this.UserPermission.create({
+      permission_id: permissionId,
+      user_id: userId,
+    });
+  }
+
+  async addUserPermissions(userId, permissions) {
+    try {
+      const permissionModels = await this.Permission.findAll({
+        where: {
+          name: { [Op.in]: permissions },
+        },
+      });
+      const aux = JSON.parse(JSON.stringify(permissionModels));
+      aux.forEach(async (fp) => {
+        console.log("inside foreach");
+        await this.addUserPermission(userId, fp.id);
+      });
+      return null;
+    } catch (e) {
+      return "Error Agregando Permisos";
+    }
+  }
+
+  async addUser(user) {
+    return this.User.create(user)
+      .then((data) => data.getDataValue("id"))
+      .catch((e) => null);
+  }
+
+  async login(user, password) {
+    try {
+      const foundUser = await this.User.findOne({ where: { user_name: user } });
+      if (!foundUser) {
+        return Promise.reject("No se encontró el usuario");
+      }
+      if (foundUser instanceof this.User) {
+        const hash = crypto
+          .createHash("md5")
+          .update(password || "")
+          .digest("hex");
+        if (!password || hash !== foundUser.password) {
+          return Promise.reject("Credenciales Incorrectas");
+        }
+        const permissions = await this.connection.query(
+          permissionsQuery.replace(/\n/g, " "),
+          [user]
+        );
+        console.log("permissions are", permissions.rows);
+        return permissions.rows.map((p) => p.name);
+      }
+    } catch (e) {
+      console.log("Error in login", e);
+      return Promise.reject("Error del servidor");
+    }
+  }
+
   addCriteria(fun) {
     return this.AssignmentCriteria.create({
       function: JSON.stringify(fun),
@@ -257,7 +419,6 @@ module.exports = class CountryDataAccess {
       .catch((e) => null);
   }
 
-  //POST
   async addState(state) {
     return await this.State.create({
       code: state.code,
