@@ -129,7 +129,6 @@ module.exports = class ConfigApi {
       ctx.response.body = res;
     });
     router.get("/slots/0", async (ctx, next) => {
-      console.log("here");
       const res = await slotController.getSlots();
       ctx.response.body = res;
     });

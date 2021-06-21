@@ -6,7 +6,7 @@ module.exports = class ZoneController {
     addZones(body){
         return this.countryDataAcces.addZone({
             code: body.code,
-            stateCode: body.stateCode,
+            state_code: body.state_code,
             name: body.name
         })
     }
