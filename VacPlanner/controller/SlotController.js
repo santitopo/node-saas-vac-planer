@@ -5,17 +5,15 @@ module.exports = class SlotController {
 
     addSlot(body){
         return this.countryDataAcces.addSlot({
-            assignmentCriteriaId: body.assignmentCriteriaId,
-            availableSlots: body.availableSlots,
-            totalSlots: body.totalSlots,
+            assignment_criteria_id: body.assignment_criteria_id,
+            available_slots: body.available_slots,
+            total_slots: body.total_slots,
             date: body.date,
             turn: body.turn,
-            stateCode: body.stateCode,
-            vacCenterId: body.vacCenterId,
-            zoneId: body.zoneId,
-            vaccinationPeriodId: body.vaccinationPeriodId,
-            zoneName:body.zoneName,
-            stateName:body.stateName
+            state_code: body.state_code,
+            vac_center_id: body.vac_center_id,
+            zone_id: body.zone_id,
+            vaccination_period_id: body.vaccination_period_id
         })
     }
 
