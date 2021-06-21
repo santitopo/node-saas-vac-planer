@@ -1,10 +1,12 @@
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
+const config = require("../../config.json");
+const { tokenLife } = config;
 const secretKey = fs.readFileSync("services/config/private.key", "utf8");
 const publicKey = fs.readFileSync("services/config/public.key", "utf8");
 
 const signOptions = {
-  expiresIn: "2h",
+  expiresIn: tokenLife,
   algorithm: "RS256",
 };
 

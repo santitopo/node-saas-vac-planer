@@ -261,6 +261,9 @@ module.exports = class CountryDataAccess {
       name: "vac_center_crud",
     });
     await this.Permission.create({
+      name: "vaccine_crud",
+    });
+    await this.Permission.create({
       name: "vac_period_crud",
     });
     await this.Permission.create({

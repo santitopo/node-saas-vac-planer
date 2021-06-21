@@ -14,6 +14,9 @@ module.exports = class UserController {
 
   async addUser(body) {
     try {
+      if (!body.userName || !body.password) {
+        throw "Datos incorrectos";
+      }
       const hash = crypto
         .createHash("md5")
         .update(body.password || "")
