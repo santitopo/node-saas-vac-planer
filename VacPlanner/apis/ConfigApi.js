@@ -13,6 +13,7 @@ const VacCenterController = require("../controller/VacCenterController");
 const VaccineController = require("../controller/VaccineController");
 const VaccinationPeriodController = require("../controller/VaccinationPeriodController");
 const SlotController = require("../controller/SlotController");
+const AuthenticationController = require("../controller/AuthenticationController");
 
 module.exports = class ConfigApi {
   constructor(countryDataAccess) {
@@ -23,7 +24,7 @@ module.exports = class ConfigApi {
   init() {
     const app = new Koa();
     const router = new Router();
-
+    const authController = new AuthenticationController();
     const reservationField = new ReservationFieldController();
     const assignmentCriteria = new AssignmentCriteriaController(
       this.countryDataAccess
@@ -41,7 +42,18 @@ module.exports = class ConfigApi {
     app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
     app.use(bodyParser());
     app.use(logger());
-    router.post("/reservationfields", (ctx, next) => {
+    app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
+
+    router.post("/reservationfields", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "validation_add",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
+      }
       reservationField.add(ctx, next);
     });
     router.post("/assignmentCriteria", async (ctx, next) => {

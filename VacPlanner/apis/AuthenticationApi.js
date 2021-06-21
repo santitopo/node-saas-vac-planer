@@ -10,9 +10,7 @@ const UserController = require("../controller/UserController");
 
 module.exports = class AuthenticationApi {
   constructor(countryDataAccess) {
-    this.authenticationController = new AuthenticationController(
-      countryDataAccess
-    );
+    this.authController = new AuthenticationController(countryDataAccess);
     this.userController = new UserController(countryDataAccess);
     this.init();
   }
@@ -22,20 +20,19 @@ module.exports = class AuthenticationApi {
     const router = new Router();
     app.use(bodyParser());
     app.use(logger());
-    app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
+    // app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
 
     router.post("/login", async (ctx, next) => {
-      const result = await this.authenticationController.login(
-        ctx.request.body
-      );
+      const result = await this.authController.login(ctx.request.body);
       ctx.response.body = result.body;
       ctx.response.status = result.status;
     });
     router.post("/user", async (ctx, next) => {
-      const token = ctx.request.headers["authorization"].split("Bearer ")[0];
-      if (
-        !this.authenticationController.checkPermissions(token, ["create_users"])
-      ) {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await this.authController.checkPermissions(token, [
+        "create_users",
+      ]);
+      if (!hasPermission) {
         ctx.response.body = "Unauthorized";
         ctx.response.status = 401;
         return;
@@ -44,14 +41,6 @@ module.exports = class AuthenticationApi {
       ctx.response.body = result.body;
       ctx.response.status = result.status;
     });
-    // router.post("/test", async (ctx, next) => {
-    //   const result = await this.authenticationController.testDecoding(
-    //     ctx.request.body.token
-    //   );
-    //   ctx.response.body = { resultado: result };
-    //   ctx.response.status = 200;
-    // });
-
     app.use(router.routes());
     app.use(router.allowedMethods());
 
