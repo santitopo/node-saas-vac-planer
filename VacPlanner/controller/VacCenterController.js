@@ -5,7 +5,7 @@ module.exports = class VacCenterController {
 
     addVacCenters(body){
         return this.countryDataAcces.addVacCenter({
-            zoneId: body.zoneId,
+            zone_id: body.zone_id,
             name: body.name
         })
     }

@@ -169,6 +169,69 @@ module.exports = class ConfigApi {
         .then((data) => (ctx.response.body = data))
         .catch((e) => (ctx.response.body = e));
     });
+<<<<<<< HEAD
+=======
+    router.post("/slots", async (ctx, next) => {
+      await slotController
+        .addSlot(ctx.request.body)
+        .then((data) => (ctx.response.body = data))
+        .catch((e) => (ctx.response.body = e));
+    });
+
+    //GET ALL
+    router.get("/states", async (ctx, next) => {
+      const res = await stateController.getStates();
+      ctx.response.body = res;
+    });
+    router.get("/zones", async (ctx, next) => {
+      const res = await zoneController.getZones();
+      ctx.response.body = res;
+    });
+    router.get("/vaccenters", async (ctx, next) => {
+      const res = await vacCenterController.getVacCenters();
+      ctx.response.body = res;
+    });
+    router.get("/vaccines", async (ctx, next) => {
+      const res = await vaccineController.getVaccines();
+      ctx.response.body = res;
+    });
+    router.get("/vaccinationperiods", async (ctx, next) => {
+      const res = await vaccinationPeriodController.getVaccinationPeriods();
+      ctx.response.body = res;
+    });
+    router.get("/slots/0", async (ctx, next) => {
+      const res = await slotController.getSlots();
+      ctx.response.body = res;
+    });
+
+    //GET
+    router.get("/states/:code", async (ctx, next) => {
+      const res = await stateController.getAState(ctx.params.code);
+      ctx.response.body = res;
+    });
+    router.get("/zones/:id", async (ctx, next) => {
+      const res = await zoneController.getAZone(ctx.params.id);
+      ctx.response.body = res;
+    });
+    router.get("/vaccenters/:id", async (ctx, next) => {
+      const res = await vacCenterController.getAVacCenter(ctx.params.id);
+      ctx.response.body = res;
+    });
+    router.get("/vaccines/:id", async (ctx, next) => {
+      const res = await vaccineController.getAVaccine(ctx.params.id);
+      ctx.response.body = res;
+    });
+    router.get("/vaccinationperiods/:id", async (ctx, next) => {
+      const res = await vaccinationPeriodController.getAVaccinationPeriod(
+        ctx.params.id
+      );
+      ctx.response.body = res;
+    });
+    router.get("/slots", async (ctx, next) => {
+      const res = await slotController.getASlot(ctx.request.body);
+      ctx.response.body = res;
+    });
+>>>>>>> develop
 
     //DELETE
     router.delete("/states/:code", async (ctx, next) => {
