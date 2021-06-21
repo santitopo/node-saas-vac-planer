@@ -89,14 +89,6 @@ module.exports = class ConfigApi {
     });
 
     //POSTS
-    router.post("/testData", async (ctx, next) => {
-      await assignmentCriteria.setTestData();
-      ctx.body = {
-        response: "Datos de Prueba agregados",
-      };
-      ctx.status = 200;
-      return;
-    });
     router.post("/states", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
       const hasPermission = await authController.checkPermissions(token, [
