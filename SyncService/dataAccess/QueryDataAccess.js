@@ -132,7 +132,7 @@ module.exports = class QueryDataAccess {
       "pending_reservations",
       {
         state_code: { type: Sequelize.INTEGER, primaryKey: true },
-        pending_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        pending_amount: { type: Sequelize.INTEGER },
         zone_code: { type: Sequelize.INTEGER, primaryKey: true },
       },
       {

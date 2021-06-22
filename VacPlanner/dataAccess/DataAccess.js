@@ -293,9 +293,6 @@ module.exports = class CountryDataAccess {
       name: "validation_add",
     });
     await this.Permission.create({
-      name: "api_crud",
-    });
-    await this.Permission.create({
       name: "create_users",
     });
     await this.Permission.create({
@@ -314,7 +311,36 @@ module.exports = class CountryDataAccess {
     });
     await this.UserPermission.create({
       user_id: 1,
+      permission_id: 1,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 2,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 3,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 4,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 5,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 6,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 7,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
       permission_id: 8,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 9,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 10,
     });
     await this.UserPermission.create({
       user_id: 2,
@@ -703,6 +729,25 @@ module.exports = class CountryDataAccess {
       }
     })
     return ret
+  }
+
+  async checkDniInReservations(personId) {
+    const reservation = await this.Reservation.findAll({
+      where: {
+        dni: personId,
+      },
+    });
+    return reservation;
+  }
+
+  async deleteReservation(personId, reservationCode) {
+    const reservation = await this.Reservation.destroy({
+      where: {
+        dni: personId,
+        reservation_code: reservationCode,
+      },
+    });
+    return reservation;
   }
 
   async initialize() {
