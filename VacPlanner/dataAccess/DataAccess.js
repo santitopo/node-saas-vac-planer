@@ -1,8 +1,14 @@
 const config = require("../../config.json");
 //const mysql = require("mysql2/promise");
 const { Client } = require("pg");
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
+const crypto = require("crypto");
 
+const permissionsQuery = `
+select p.name from sys_user u, user_permission up, permission p
+where u.user_name= $1::text
+AND up.user_id = u.id
+AND up.permission_id = p.id`;
 module.exports = class CountryDataAccess {
   constructor() {
     this.initialize();
@@ -19,6 +25,51 @@ module.exports = class CountryDataAccess {
     );
 
     // init Models and add them with FK and PK restrictions to the db object
+
+    this.Permission = this.sequelize.define(
+      "permission",
+      {
+        name: { type: Sequelize.STRING, unique: true },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.User = this.sequelize.define(
+      "sys_user",
+      {
+        user_name: { type: Sequelize.STRING, unique: true },
+        password: { type: Sequelize.STRING },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+    this.UserPermission = this.sequelize.define(
+      "user_permission",
+      {
+        permission_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "permission",
+            key: "id",
+          },
+        },
+        user_id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          references: {
+            model: "sys_user",
+            key: "id",
+          },
+        },
+      },
+      {
+        freezeTableName: true,
+      }
+    );
+
     this.Reservation = this.sequelize.define(
       "reservation",
       {
@@ -35,6 +86,20 @@ module.exports = class CountryDataAccess {
           },
         },
         turn: { type: Sequelize.INTEGER },
+        state_code: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "state",
+            key: "code",
+          },
+        },
+        zone_id: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "zone",
+            key: "id",
+          },
+        }
       },
       {
         freezeTableName: true,
@@ -192,6 +257,9 @@ module.exports = class CountryDataAccess {
     );
 
     // Sync models with database
+    await this.Permission.sync({ force: false });
+    await this.User.sync({ force: false });
+    await this.UserPermission.sync({ force: false });
     await this.AssignmentCriteria.sync({ force: false });
     await this.Vaccine.sync({ force: false });
     await this.State.sync({ force: false });
@@ -202,6 +270,82 @@ module.exports = class CountryDataAccess {
     await this.Slot.sync({ force: false });
   }
   async createTestData() {
+    const hash = crypto.createHash("md5").update("pass").digest("hex");
+    await this.Permission.create({
+      name: "vac_center_crud",
+    });
+    await this.Permission.create({
+      name: "vaccine_crud",
+    });
+    await this.Permission.create({
+      name: "vac_period_crud",
+    });
+    await this.Permission.create({
+      name: "state_crud",
+    });
+    await this.Permission.create({
+      name: "zone_crud",
+    });
+    await this.Permission.create({
+      name: "assignment_criteria_add",
+    });
+    await this.Permission.create({
+      name: "validation_add",
+    });
+    await this.Permission.create({
+      name: "create_users",
+    });
+    await this.Permission.create({
+      name: "give_vaccine",
+    });
+    await this.Permission.create({
+      name: "query",
+    });
+    await this.User.create({
+      user_name: "santitopo",
+      password: hash,
+    });
+    await this.User.create({
+      user_name: "colominetti",
+      password: hash,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 1,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 2,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 3,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 4,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 5,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 6,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 7,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 8,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 9,
+    });await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 10,
+    });
+    await this.UserPermission.create({
+      user_id: 2,
+      permission_id: 1,
+    });
     await this.Vaccine.create({
       name: "Phizer",
     });
@@ -234,6 +378,8 @@ module.exports = class CountryDataAccess {
       assigned: true,
       vaccination_period_id: 1,
       turn: 1,
+      state_code:1,
+      zone_id:1
     });
     await this.Slot.create({
       assignment_criteria_id: 1,
@@ -249,6 +395,67 @@ module.exports = class CountryDataAccess {
       vaccination_period_id: 1,
     });
   }
+
+  //POST
+  async addUserPermission(userId, permissionId) {
+    console.log("llegue");
+    return this.UserPermission.create({
+      permission_id: permissionId,
+      user_id: userId,
+    });
+  }
+
+  async addUserPermissions(userId, permissions) {
+    try {
+      const permissionModels = await this.Permission.findAll({
+        where: {
+          name: { [Op.in]: permissions },
+        },
+      });
+      const aux = JSON.parse(JSON.stringify(permissionModels));
+      aux.forEach(async (fp) => {
+        console.log("inside foreach");
+        await this.addUserPermission(userId, fp.id);
+      });
+      return null;
+    } catch (e) {
+      return "Error Agregando Permisos";
+    }
+  }
+
+  async addUser(user) {
+    return this.User.create(user)
+      .then((data) => data.getDataValue("id"))
+      .catch((e) => null);
+  }
+
+  async login(user, password) {
+    try {
+      const foundUser = await this.User.findOne({ where: { user_name: user } });
+      if (!foundUser) {
+        return Promise.reject("No se encontró el usuario");
+      }
+      if (foundUser instanceof this.User) {
+        const hash = crypto
+          .createHash("md5")
+          .update(password || "")
+          .digest("hex");
+        if (!password || hash !== foundUser.password) {
+          return Promise.reject("Credenciales Incorrectas");
+        }
+        const permissions = await this.connection.query(
+          permissionsQuery.replace(/\n/g, " "),
+          [user]
+        );
+        console.log("permissions are", permissions.rows);
+        return permissions.rows.map((p) => p.name);
+      }
+    } catch (e) {
+      console.log("Error in login", e);
+      return Promise.reject("Error del servidor");
+    }
+  }
+
   addCriteria(fun) {
     return this.AssignmentCriteria.create({
       function: JSON.stringify(fun),
@@ -257,7 +464,6 @@ module.exports = class CountryDataAccess {
       .catch((e) => null);
   }
 
-  //POST
   async addState(state) {
     return await this.State.create({
       code: state.code,
@@ -267,13 +473,13 @@ module.exports = class CountryDataAccess {
   async addZone(zone) {
     return await this.Zone.create({
       code: zone.code,
-      stateCode: zone.stateCode,
+      state_code: zone.state_code,
       name: zone.name,
     });
   }
   async addVacCenter(vacCenter) {
     return await this.VacCenter.create({
-      zoneId: vacCenter.zoneId,
+      zone_id: vacCenter.zone_id,
       name: vacCenter.name,
     });
   }
@@ -285,28 +491,26 @@ module.exports = class CountryDataAccess {
   }
   async addVaccinationPeriod(vaccinationPeriod) {
     let vp = await this.VaccinationPeriod.create({
-      vaccineAmount: vaccinationPeriod.vaccineAmount,
-      dateFrom: vaccinationPeriod.dateFrom,
-      dateTo: vaccinationPeriod.dateTo,
-      vacCenterId: vaccinationPeriod.vacCenterId,
-      assignmentCriteriaId: vaccinationPeriod.assignmentCriteriaId,
-      vaccineId: vaccinationPeriod.vaccineId,
+      vaccine_amount: vaccinationPeriod.vaccine_amount,
+      date_from: vaccinationPeriod.date_from,
+      date_to: vaccinationPeriod.date_to,
+      vac_center_id: vaccinationPeriod.vac_center_id,
+      assignment_criteria_id: vaccinationPeriod.assignment_criteria_id,
+      vaccine_id: vaccinationPeriod.vaccine_id,
     });
     return JSON.stringify(vp, null, 2);
   }
   async addSlot(slot) {
     return await this.Slot.create({
-      assignmentCriteriaId: slot.assignmentCriteriaId,
-      availableSlots: slot.availableSlots,
-      totalSlots: slot.totalSlots,
-      zoneName: slot.zoneName,
-      stateName: slot.stateName,
+      assignment_criteria_id: slot.assignment_criteria_id,
+      available_slots: slot.available_slots,
+      total_slots: slot.total_slots,
       date: slot.date,
       turn: slot.turn,
-      stateCode: slot.stateCode,
-      vacCenterId: slot.vacCenterId,
-      zoneId: slot.zoneId,
-      vaccinationPeriodId: slot.vaccinationPeriodId,
+      state_code: slot.state_code,
+      vac_center_id: slot.vac_center_id,
+      zone_id: slot.zone_id,
+      vaccination_period_id: slot.vaccination_period_id,
     });
   }
 
@@ -335,6 +539,30 @@ module.exports = class CountryDataAccess {
     const slots = await this.Slot.findAll();
     return JSON.stringify(slots, null, 2);
   }
+  async getReservations(zone_id,state_code,date1, date2,turn, today){
+    let reservations
+    reservations = await this.connection.query(
+      `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`)
+      .then((data)=>  data)
+      .catch((e)=> console.log(e))
+    
+    /*findAll({
+      where: {
+        assigned: false,
+        state_code: state_code,
+        zone_id: zone_id,
+        date: {
+          $or:{
+            $between: [ date1, date2],
+            $lte: today
+          }
+          $lte: new Date()
+        }
+        
+      }
+    })*/
+    return reservations
+  }
 
   //GET
   async getAState(code) {
@@ -351,15 +579,15 @@ module.exports = class CountryDataAccess {
         id: id,
       },
     });
-    return JSON.stringify(zones, null, 2);
+    return zones;
   }
   async getAVacCenter(id) {
-    const vacCenters = await this.VacCenter.findAll({
+    const vacCenter = await this.VacCenter.findOne({
       where: {
-        id: id,
-      },
+        id: id
+      }
     });
-    return JSON.stringify(vacCenters, null, 2);
+    return /*JSON.stringify(*/vacCenter/*, null, 2)*/;
   }
   async getAVaccine(id) {
     const vaccines = await this.Vaccine.findAll({
@@ -375,20 +603,27 @@ module.exports = class CountryDataAccess {
         id: id,
       },
     });
-    return JSON.stringify(vaccinationPeriods, null, 2);
+    let json = JSON.stringify(vaccinationPeriods, null, 2);
+    console.log(json)
+    return json
   }
   async getASlot(body) {
     const slots = await this.Slot.findAll({
       where: {
         date: body.date,
         turn: body.turn,
-        vaccinationPeriodId: body.vaccinationPeriodId,
-        zoneId: body.zoneId,
-        vacCenterId: body.vacCenterId,
-        stateCode: body.stateCode,
+        vaccination_period_id: body.vaccination_period_id,
       },
     });
     return JSON.stringify(slots, null, 2);
+  }
+  async getACriteria(id){
+    const criteria = await this.AssignmentCriteria.findAll({
+      where:{
+        id: id
+      }
+    })
+    return JSON.stringify(criteria, null, 2);
   }
 
   //DELETE
@@ -432,10 +667,7 @@ module.exports = class CountryDataAccess {
       where: {
         date: body.date,
         turn: body.turn,
-        vaccinationPeriodId: body.vaccinationPeriodId,
-        zoneId: body.zoneId,
-        vacCenterId: body.vacCenterId,
-        stateCode: body.stateCode,
+        vaccination_period_id: body.vaccination_period_id,
       },
     });
   }
@@ -470,28 +702,33 @@ module.exports = class CountryDataAccess {
     });
   }
   async updateAVaccinationPeriod(id, newName) {
-    return await this.VaccinationPeriod.update(newName, {
+    let ret = await this.VaccinationPeriod.update(newName, {
       where: {
         id: id,
       },
     });
+    return ret
   }
   async updateASlot(newName) {
     let update = {
-      assignmentCriteriaId: newName.assignmentCriteriaId,
-      availableSlots: newName.availableSlots,
-      totalSlots: newName.totalSlots,
+      available_slots: newName.available_slots,
+      total_slots: newName.total_slots,
     };
     return await this.Slot.update(update, {
       where: {
         date: newName.date,
         turn: newName.turn,
-        vaccinationPeriodId: newName.vaccinationPeriodId,
-        zoneId: newName.zoneId,
-        vacCenterId: newName.vacCenterId,
-        stateCode: newName.stateCode,
+        vaccination_period_id: newName.vaccination_period_id,
       },
     });
+  }
+  async updateAReservation(reservation){
+    let ret = await this.Reservation.update(reservation, {
+      where: {
+        reservation_code: reservation.reservation_code
+      }
+    })
+    return ret
   }
 
   async initialize() {
