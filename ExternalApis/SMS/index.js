@@ -12,8 +12,8 @@ app.use(logger());
 
 router.post("/sms", (ctx, next) => {
     console.log(ctx.request.body)
-    ctx.request.status = 200
-    ctx.request.body = 
+    ctx.response.status = 200
+    ctx.response.body = "arrived"
 });
 
 app.use(router.routes());
