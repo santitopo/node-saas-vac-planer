@@ -8,8 +8,8 @@ module.exports = class QueryDataAccess {
   }
 
   async vaccinesByStateAndTurn(params) {
-    const initialDate = params[0];
-    const finalDate = params[1];
+    const initialDate = new Date(params[0]);
+    const finalDate = new Date(params[1]);
     const vaccines = await this.VaccinesByStateAndTurn.findAll({
       where: {
         date: {
@@ -35,9 +35,31 @@ module.exports = class QueryDataAccess {
 
   async pendingReservaionsByDepartment() {
     const pendingReservation = await this.PendingReservations.findAll({
-      atributes: ['state_code', [Sequelize.fn('sum', Sequelize.col('vaccine_amount')), 'total']]
+      attributes: ['state_code', [Sequelize.fn('sum', Sequelize.col('vaccine_amount')), 'total']],
+      group: ['state_code']
     });
     return pendingReservation
+  }
+
+  async pendingReservaionsByDepartmentAndZone() {
+    const pendingReservation = await this.PendingReservations.findAll({
+      attributes: ['state_code', 'zone_code', [Sequelize.fn('sum', Sequelize.col('vaccine_amount')), 'total']],
+      group: ['state_code', 'zone_code']
+    });
+    return pendingReservation
+  }
+
+  async givenAndRemainingVaccines(params) {
+    const initialDate = new Date(params[0]);
+    const finalDate = new Date(params[1]);
+    const vaccines = await this.VaccinesByStateAndTurn.findAll({
+      where: {
+        date: {
+          [Op.between]: [initialDate, finalDate],
+        }
+      },
+    });
+    return vaccines
   }
 
   async createTables() {
@@ -53,10 +75,10 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndTurn = this.sequelize.define(
       "vaccines_by_state_and_turn",
       {
-        state_code: { type: Sequelize.STRING, primaryKey:true },
-        turn: { type: Sequelize.STRING, primaryKey:true },
-        date: { type: Sequelize.DATE, primaryKey:true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey:true },
+        state_code: { type: Sequelize.STRING, primaryKey: true },
+        turn: { type: Sequelize.STRING, primaryKey: true },
+        date: { type: Sequelize.DATE, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
       },
       {
         freezeTableName: true,
@@ -66,11 +88,11 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndZone = this.sequelize.define(
       "vaccines_by_state_and_zone",
       {
-        state_code: { type: Sequelize.STRING, primaryKey:true },
-        zone_code: { type: Sequelize.STRING, primaryKey:true },
-        date: { type: Sequelize.DATE, primaryKey:true },
-        age: { type: Sequelize.INTEGER, primaryKey:true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey:true },
+        state_code: { type: Sequelize.STRING, primaryKey: true },
+        zone_code: { type: Sequelize.STRING, primaryKey: true },
+        date: { type: Sequelize.DATE, primaryKey: true },
+        age: { type: Sequelize.INTEGER, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
       },
       {
         freezeTableName: true,
@@ -80,22 +102,9 @@ module.exports = class QueryDataAccess {
     this.PendingReservations = this.sequelize.define(
       "pending_reservations",
       {
-        state_code: { type: Sequelize.STRING, primaryKey:true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey:true },
-        zone_code: { type: Sequelize.STRING, primaryKey:true },
-      },
-      {
-        freezeTableName: true,
-      }
-    );
-
-    this.GivenAndRemainingVaccines = this.sequelize.define(
-      "given_and_remaining_vaccines",
-      {
-        vac_center_id: { type: Sequelize.INTEGER, primaryKey:true },
-        date: { type: Sequelize.DATE },
-        remaining_vaccines: { type: Sequelize.INTEGER, primaryKey:true },
-        given_vaccines: { type: Sequelize.INTEGER, primaryKey:true },
+        state_code: { type: Sequelize.STRING, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        zone_code: { type: Sequelize.STRING, primaryKey: true },
       },
       {
         freezeTableName: true,
@@ -105,7 +114,6 @@ module.exports = class QueryDataAccess {
     await this.VaccinesByStateAndTurn.sync({ force: false });
     await this.VaccinesByStateAndZone.sync({ force: false });
     await this.PendingReservations.sync({ force: false });
-    await this.GivenAndRemainingVaccines.sync({ force: false });
     await this.connectDB();
   }
 
@@ -145,6 +153,11 @@ module.exports = class QueryDataAccess {
   }
 
   async createTestData() {
+      //await this.createPendingReservationsData();
+      await this.createVaccinesByStateAndTurnData();
+  }
+
+  async createPendingReservationsData() {
     await this.PendingReservations.create({
       state_code: "Code1",
       vaccine_amount: 20,
@@ -185,6 +198,15 @@ module.exports = class QueryDataAccess {
       state_code: "Code3",
       vaccine_amount: 20,
       zone_code: "Code5",
+    });
+  }
+
+  async createVaccinesByStateAndTurnData() {
+    await this.VaccinesByStateAndTurn.create({
+      state_code: 1,
+        turn: "Mat",
+        date: new Date(),
+        vaccine_amount: 50,
     });
   }
 }
