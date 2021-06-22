@@ -96,7 +96,12 @@ module.exports = class ReservationController {
     const updatedCriterias = this.assignmentCriterias.getUpdatedCriterias();
 
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
-    //Step 4 (SQL) - Update de cupo libre. Deberia devolver el slot
+    //Step 4 Check for reservations with same id
+    const existsReservaion = await this.countryDataAccess.checkIdInReservations(body.id);
+    if(existsReservaion.length > 0){
+      return {body: `Ya existe una reserva para la cedula ${body.id}`, status: 400}
+    }
+    //Step 5 (SQL) - Update de cupo libre. Deberia devolver el slot
     const reservationDate = this.parseDate(body.reservationDate);
     if(!reservationDate){
       return {body: "Fecha mal provista", status: 400}
@@ -108,7 +113,7 @@ module.exports = class ReservationController {
       zoneCode: body.zoneCode,
       assignmentCriteriasIds: validCriterias,
     });
-    // Step 5
+    // Step 6
     //Objeto MQ
     let reservationCode = uniqid();
     err = await this.sendReservationToMQ(

@@ -324,4 +324,13 @@ module.exports = class CountryDataAccess {
               LIMIT 1)
     RETURNING CONCAT('{"turn" :', s.turn,',"vacCenterCode":', s.vac_center_id, ',"vaccinationPeriodId": ', s.vaccination_period_id,'}');`;
   }
+
+  async checkIdInReservations(personId) {
+    const reservation = await this.Reservation.findAll({
+      where: {
+        dni: personId,
+      },
+    });
+    return reservation;
+  }
 };
