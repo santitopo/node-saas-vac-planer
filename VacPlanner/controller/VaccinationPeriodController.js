@@ -47,7 +47,7 @@ module.exports = class VaccinationPeriodController {
         state_code = state_code[0].dataValues.state_code
         let parseDate = this.parseDate(date)
         let today = this.parseDate(new Date()) + ' 23:59:59'
-        let listReservations = await this.countryDataAcces.getReservations(zone_id, state_code, `${parseDate} 00:00:01`, `${parseDate} 23:59:59`, turn, today)
+        let listReservations = await this.countryDataAcces.getReservations(zone_id, state_code, `${parseDate} 00:00:00`, `${parseDate} 23:59:59`, turn, today)
         listReservations = listReservations.rows
         let criteria = JSON.parse(await this.countryDataAcces.getACriteria(vp.assignment_criteria_id))[0]
         const fun = new Function("person", this.template(criteria.function))
@@ -67,9 +67,16 @@ module.exports = class VaccinationPeriodController {
                             zone_id: zone_id
                         }
                         this.countryDataAcces.updateAReservation(reservation)
-                        //Envia SMS
+                        let object = {
+                            reservationCode: element.reservation_code,
+                            state: state_code,
+                            zone: zone_id,
+                            vacCenterCode: vp.vacCenterCode,
+                            vaccinationDate: parseDate,
+                            turn: turn
+                        }
+                        await axios.post("http://localhost:5007/sms/", object).then().catch((e) => console.log(e))
                         amountToReturn--
-
                     }
                 }
             } else {
@@ -172,7 +179,7 @@ module.exports = class VaccinationPeriodController {
                         vaccination_period_id: vpJson.id
                     }))[0]
                     if (slot.available_slots == 0 && amountToAddTotal != 0) {
-                        amountToAdd = await this.realocateReservations(startDate, i%2?3:2, vpJson, amountToAdd)
+                        amountToAdd = await this.realocateReservations(startDate, i % 2 ? 3 : 2, vpJson, amountToAdd)
                     }
                     if (amountToAddTotal != 0) {
                         this.slotController.updateASlot({

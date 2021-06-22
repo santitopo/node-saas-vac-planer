@@ -45,8 +45,10 @@ module.exports = class ReservationController {
         vaccinationPeriodId: slot ? slot.vaccinationPeriodId : null,
         date: requestBody.reservationDate,
         turn: slot ? slot.turn : requestBody.turn,
+        state_code: slot?(slot.state_code?slot.state_code: requestBody.stateCode ): requestBody.stateCode,
+        zone_id: slot? (slot.zone_id? slot.zone_id:requestBody.zoneCode): requestBody.zoneCode
       };
-      await this.mq.add(mq_reservation);
+      await this.mq.add(mq_reservation, { removeOnComplete: true });
     } catch {
       return "Error en la MQ";
     }
@@ -125,30 +127,35 @@ module.exports = class ReservationController {
     }
     // If pudo reservar ->  Retorno HTTP
     if (slotData) {
+      let object = {
+        dni: person.DocumentId,
+        reservationCode,
+        state: body.stateCode,
+        zone: body.zoneCode,
+        vacCenterCode: slotData.vacCenterCode,
+        vaccinationDate: reservationDate,
+        turn: slotData.turn,
+        timestampI: new Date(body.timestampI).toISOString(),
+        timestampR: new Date(Date.now()).toISOString(),
+        timestampD: Date.now() - new Date(body.timestampI) + " ms",
+      }
+      axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
       return {
-        body: {
-          dni: person.id,
-          reservationCode,
-          state: body.stateCode,
-          zone: body.zoneCode,
-          vacCenterCode: slotData.vacCenterCode,
-          vaccinationDate: reservationDate,
-          turn: slotData.turn,
-          timestampI: new Date(body.timestampI).toISOString(),
-          timestampR: new Date(Date.now()).toISOString(),
-          timestampD: Date.now() - new Date(body.timestampI) + " ms",
-        },
+        body: object,
         status: 200,
       };
     } else {
+      let object = {
+        dni: person.DocumentId,
+        reservationCode,
+        message: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
+        timestampI: new Date(body.timestampI).toISOString(),
+        timestampR: new Date(Date.now()).toISOString(),
+        timestampD: Date.now() - new Date(body.timestampI) + " ms",
+      }
+      axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
       return {
-        body: {
-          reservationCode,
-          message: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
-          timestampI: new Date(body.timestampI).toISOString(),
-          timestampR: new Date(Date.now()).toISOString(),
-          timestampD: Date.now() - new Date(body.timestampI) + " ms",
-        },
+        body: object,
         status: 200,
       };
     }
