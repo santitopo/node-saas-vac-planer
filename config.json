@@ -4,6 +4,7 @@
   "user": "postgres",
   "password": "password",
   "database": "countrydb",
+  "queryDatabase" : "querydatabase",
   "tokenLife": "2h",
   "rolesPermissions": {
     "superadmin": ["create_users","vac_center_crud", "vaccine_crud", "vac_period_crud","state_crud",
