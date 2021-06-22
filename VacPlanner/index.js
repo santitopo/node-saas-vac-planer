@@ -3,7 +3,6 @@ const ConfigApi = require("./apis/ConfigApi");
 const VacQueryApi = require("./apis/VacQueryApi");
 const ConfirmReservationService = require("./controller/ConfirmReservationService")
 const QueryDataAccess = require("./dataAccess/QueryDataAccess");
-const ConfirmReservationService = require("./controller/ConfirmReservationService");
 const AuthenticationApi = require("./apis/AuthenticationApi");
 
 
