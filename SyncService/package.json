@@ -9,6 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "redis": "^3.1.2"
+    "bull": "^3.22.8",
+    "pg": "^8.6.0",
+    "redis": "^3.1.2",
+    "sequelize": "^6.6.2"
   }
 }

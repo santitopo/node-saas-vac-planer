@@ -19,5 +19,8 @@
     "vaccinator": ["give_vaccine"],
     "statistic": ["query"]
   },
+  "reservationQueryMQ": "ReservationQueryMQ",
+  "vaccinationQueryMQ": "VaccinationQueryMQ",
+  "concurrentMQProcessing": "4",
   "queryDatabase": "querydatabase"
 }
