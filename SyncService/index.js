@@ -1,17 +1,35 @@
-// Este servicio permite cargar nuevos filtros a redis. Debería sustituirse por un servicio que levante
-// los filtros de la base de datos cada cierto tiempo y los impacte en Redis
-const redis = require("redis");
-const client = redis.createClient();
-client.set(
-  "assignmentCriterias",
-  JSON.stringify([
-    {
-      function:
-        "new Date().getFullYear() - new Date(person.DateOfBirth).getFullYear() > 50",
-      index: 28,
-    },
-    { function: "person.Priority == 1", index: 33 },
-    { function: "person.DocumentId[0] == 1", index: 39 },
-  ]),
-  () => console.log("nuevos criterios de asignacion cargados")
-);
+const {
+  reservationQueryMQ,
+  vaccinationQueryMQ,
+  concurrentMQProcessing,
+} = require("../config.json");
+const amountofInstances = parseInt(concurrentMQProcessing, 10);
+const ResQueryProcessor = require("../SyncService/resQueryProcessor");
+const QueryDataAccess = require("../SyncService/dataAccess/QueryDataAccess");
+const VacQueryProcessor = require("../SyncService/vacQueryProcessor");
+const queryDataAccess = new QueryDataAccess();
+const resQueryProcessor = new ResQueryProcessor(queryDataAccess);
+const vacQueryProcessor = new VacQueryProcessor(queryDataAccess);
+
+//Define queues to receive given vaccines and new reservations
+const Queue = require("bull");
+const resQueryMQ = new Queue(reservationQueryMQ);
+const vacQueryMQ = new Queue(vaccinationQueryMQ);
+/* Every time there is a new message in the MQ, these adapt the
+entities and adds then to the queryDB */
+resQueryMQ.process(amountofInstances, resQueryProcessor.process);
+vacQueryMQ.process(amountofInstances, vacQueryProcessor.process);
+
+resQueryMQ.on("completed", () => {
+  console.log("ReservationReservationMQObject processed correctly");
+});
+resQueryMQ.on("stalled", () => {
+  console.log("ReservationReservationMQObject became stalled");
+});
+
+vacQueryMQ.on("completed", () => {
+  console.log("VaccineMQObject processed correctly");
+});
+vacQueryMQ.on("stalled", () => {
+  console.log("VaccineMQObject became stalled");
+});

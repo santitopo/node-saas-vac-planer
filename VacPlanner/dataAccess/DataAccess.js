@@ -749,6 +749,25 @@ module.exports = class CountryDataAccess {
     return ret
   }
 
+  async checkDniInReservations(personId) {
+    const reservation = await this.Reservation.findAll({
+      where: {
+        dni: personId,
+      },
+    });
+    return reservation;
+  }
+
+  async deleteReservation(personId, reservationCode) {
+    const reservation = await this.Reservation.destroy({
+      where: {
+        dni: personId,
+        reservation_code: reservationCode,
+      },
+    });
+    return reservation;
+  }
+
   async initialize() {
     // create db if it doesn't already exist
     const { database } = config;

@@ -79,6 +79,20 @@ module.exports = class CountryDataAccess {
           },
         },
         turn: { type: Sequelize.INTEGER },
+        state_code: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "state",
+            key: "code",
+          },
+        },
+        zone_id: {
+          type: Sequelize.INTEGER,
+          references: {
+            model: "zone",
+            key: "id",
+          },
+        },
       },
       {
         freezeTableName: true,
@@ -323,5 +337,14 @@ module.exports = class CountryDataAccess {
               ORDER BY s.turn ${data.turn === 3 ? "DESC" : "ASC"}
               LIMIT 1)
     RETURNING CONCAT('{"turn" :', s.turn,',"vacCenterCode":', s.vac_center_id, ',"vaccinationPeriodId": ', s.vaccination_period_id,'}');`;
+  }
+
+  async checkDniInReservations(personId) {
+    const reservation = await this.Reservation.findAll({
+      where: {
+        dni: personId,
+      },
+    });
+    return reservation;
   }
 };
