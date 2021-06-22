@@ -7,6 +7,62 @@ module.exports = class QueryDataAccess {
     this.initialize();
   }
 
+  async updateVaccinesByStateAndTurn(state_code, turn, date) {
+    const vacByStateAndTurn = await this.VaccinesByStateAndTurn.findOne({
+      where: {
+        [Op.and]: [{ state_code }, { turn }, { date }],
+      },
+    });
+    if (!vacByStateAndTurn) {
+      await this.VaccinesByStateAndTurn.create({
+        state_code,
+        turn,
+        date,
+        vaccine_amount: 1,
+      });
+    } else {
+      await this.VaccinesByStateAndTurn.update(
+        {
+          vaccine_amount: vacByStateAndTurn.vaccine_amount + 1,
+        },
+        {
+          where: {
+            [Op.and]: [{ state_code }, { turn }, { date }],
+          },
+        }
+      );
+    }
+  }
+
+  async updateVaccinesByStateAndZone(state_code, zone_code, age, date) {
+    const vacByStateAndZone = await this.VaccinesByStateAndZone.findOne({
+      where: {
+        [Op.and]: [{ state_code }, { zone_code }, { age }, { date }],
+      },
+    });
+    if (!vacByStateAndZone) {
+      await this.VaccinesByStateAndZone.create({
+        state_code,
+        zone_code,
+        age,
+        date,
+        vaccine_amount: 1,
+      });
+    } else {
+      await this.VaccinesByStateAndZone.update(
+        {
+          vaccine_amount: vacByStateAndZone.vaccine_amount + 1,
+        },
+        {
+          where: {
+            [Op.and]: [{ state_code }, { zone_code }, { age }, { date }],
+          },
+        }
+      );
+    }
+    return;
+  }
+
   async updateOrCreatePendingReservation(state_code, zone_code, assigned) {
     const pendingResModel = await this.PendingReservations.findOne({
       where: { [Op.and]: [{ state_code }, { zone_code }] },
@@ -48,10 +104,10 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndTurn = this.sequelize.define(
       "vaccines_by_state_and_turn",
       {
-        state_code: { type: Sequelize.STRING, primaryKey: true },
-        turn: { type: Sequelize.STRING, primaryKey: true },
+        state_code: { type: Sequelize.INTEGER, primaryKey: true },
+        turn: { type: Sequelize.INTEGER, primaryKey: true },
         date: { type: Sequelize.DATE, primaryKey: true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER },
       },
       {
         freezeTableName: true,
@@ -61,11 +117,11 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndZone = this.sequelize.define(
       "vaccines_by_state_and_zone",
       {
-        state_code: { type: Sequelize.STRING, primaryKey: true },
-        zone_code: { type: Sequelize.STRING, primaryKey: true },
+        state_code: { type: Sequelize.INTEGER, primaryKey: true },
+        zone_code: { type: Sequelize.INTEGER, primaryKey: true },
         date: { type: Sequelize.DATE, primaryKey: true },
         age: { type: Sequelize.INTEGER, primaryKey: true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER },
       },
       {
         freezeTableName: true,
@@ -84,23 +140,9 @@ module.exports = class QueryDataAccess {
       }
     );
 
-    this.GivenAndRemainingVaccines = this.sequelize.define(
-      "given_and_remaining_vaccines",
-      {
-        vac_center_id: { type: Sequelize.INTEGER, primaryKey: true },
-        date: { type: Sequelize.DATE },
-        remaining_vaccines: { type: Sequelize.INTEGER, primaryKey: true },
-        given_vaccines: { type: Sequelize.INTEGER, primaryKey: true },
-      },
-      {
-        freezeTableName: true,
-      }
-    );
-
     await this.VaccinesByStateAndTurn.sync({ force: false });
     await this.VaccinesByStateAndZone.sync({ force: false });
     await this.PendingReservations.sync({ force: false });
-    await this.GivenAndRemainingVaccines.sync({ force: false });
     await this.connectDB();
     // this.createTestData();
   }

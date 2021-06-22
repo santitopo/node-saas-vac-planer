@@ -4,13 +4,30 @@ module.exports = class VacQueryProcessor {
   }
 
   process = async (job, done) => {
-    console.log("processing a new Reservation MQObject");
-    let res = job.data;
-    // await this.queryDataAccess.updateOrCreatePendingReservation(
-    //   res.state_code,
-    //   res.zone_code,
-    //   res.assigned
-    // );
-    done();
+    /*
+    TODO:
+    This method receives a vaccineMQobject = {state_code, zone_code, age, turn, date}.
+    Should be received every time a vaccine is given 
+    */
+    console.log("processing a new VaccineMQObject");
+    try {
+      let res = job.data;
+      await this.queryDataAccess.updateVaccinesByStateAndZone(
+        res.state_code,
+        res.zone_code,
+        res.age,
+        res.turn,
+        res.date
+      );
+      await this.queryDataAccess.updateVaccinesByStateAndTurn(
+        res.state_code,
+        res.turn,
+        res.date
+      );
+      done();
+    } catch (e) {
+      console.log("Error processing a VaccineMQObject: ", e);
+      throw new Error("Error processing a VaccineMQObject");
+    }
   };
 };
