@@ -4,6 +4,7 @@ const VacQueryApi = require("./apis/VacQueryApi");
 const ConfirmReservationService = require("./controller/ConfirmReservationService")
 const QueryDataAccess = require("./dataAccess/QueryDataAccess");
 const AuthenticationApi = require("./apis/AuthenticationApi");
+const CheckReservationApi = require("./apis/CheckReservationApi");
 
 
 const countryDataAccess = new CountryDataAccess();
@@ -12,3 +13,4 @@ const confirmReservationService = new ConfirmReservationService();
 const configApi = new ConfigApi(countryDataAccess);
 const vacQueryApi = new VacQueryApi(queryDataAccess);
 const authenticationApi = new AuthenticationApi(countryDataAccess);
+const checkReservationApi = new CheckReservationApi(countryDataAccess)

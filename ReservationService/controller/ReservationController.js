@@ -97,7 +97,7 @@ module.exports = class ReservationController {
 
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
     //Step 4 Check for reservations with same id
-    const existsReservaion = await this.countryDataAccess.checkIdInReservations(body.id);
+    const existsReservaion = await this.countryDataAccess.checkDniInReservations(body.id);
     if(existsReservaion.length > 0){
       return {body: `Ya existe una reserva para la cedula ${body.id}`, status: 400}
     }
