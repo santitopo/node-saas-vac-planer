@@ -7,66 +7,88 @@ module.exports = class QueryDataAccess {
     this.initialize();
   }
 
-  async vaccinesByStateAndTurn(params) {
-    const initialDate = new Date(params[0]);
-    const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
+  async updateVaccinesByStateAndTurn(state_code, turn, date) {
+    const vacByStateAndTurn = await this.VaccinesByStateAndTurn.findOne({
       where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        },
+        [Op.and]: [{ state_code }, { turn }, { date }],
       },
     });
-    return vaccines;
+    if (!vacByStateAndTurn) {
+      await this.VaccinesByStateAndTurn.create({
+        state_code,
+        turn,
+        date,
+        vaccine_amount: 1,
+      });
+    } else {
+      await this.VaccinesByStateAndTurn.update(
+        {
+          vaccine_amount: vacByStateAndTurn.vaccine_amount + 1,
+        },
+        {
+          where: {
+            [Op.and]: [{ state_code }, { turn }, { date }],
+          },
+        }
+      );
+    }
   }
 
-  async vaccinesByStateAndZone(params) {
-    const initialDate = params[0];
-    const finalDate = params[1];
-    const vaccines = await this.VaccinesByStateAndZone.findAll({
+  async updateVaccinesByStateAndZone(state_code, zone_code, age, date) {
+    const vacByStateAndZone = await this.VaccinesByStateAndZone.findOne({
       where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        },
+        [Op.and]: [{ state_code }, { zone_code }, { age }, { date }],
       },
     });
-    return vaccines;
-  }
-
-  async pendingReservaionsByDepartment() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: [
-        "state_code",
-        [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
-      ],
-      group: ["state_code"],
-    });
-    return pendingReservation;
-  }
-
-  async pendingReservaionsByDepartmentAndZone() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: [
-        "state_code",
-        "zone_code",
-        [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
-      ],
-      group: ["state_code", "zone_code"],
-    });
-    return pendingReservation;
-  }
-
-  async givenAndRemainingVaccines(params) {
-    const initialDate = new Date(params[0]);
-    const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
+    if (!vacByStateAndZone) {
+      await this.VaccinesByStateAndZone.create({
+        state_code,
+        zone_code,
+        age,
+        date,
+        vaccine_amount: 1,
+      });
+    } else {
+      await this.VaccinesByStateAndZone.update(
+        {
+          vaccine_amount: vacByStateAndZone.vaccine_amount + 1,
         },
-      },
+        {
+          where: {
+            [Op.and]: [{ state_code }, { zone_code }, { age }, { date }],
+          },
+        }
+      );
+    }
+    return;
+  }
+
+  async updateOrCreatePendingReservation(state_code, zone_code, assigned) {
+    const pendingResModel = await this.PendingReservations.findOne({
+      where: { [Op.and]: [{ state_code }, { zone_code }] },
     });
-    return vaccines;
+    if (!pendingResModel) {
+      await this.PendingReservations.create({
+        state_code,
+        zone_code,
+        pending_amount: 1,
+      });
+    } else {
+      await this.PendingReservations.update(
+        {
+          pending_amount: assigned
+            ? pendingResModel.pending_amount - 1
+            : pendingResModel.pending_amount + 1,
+        },
+        {
+          where: {
+            state_code,
+            zone_code,
+          },
+        }
+      );
+    }
+    return;
   }
 
   async createTables() {
@@ -122,6 +144,7 @@ module.exports = class QueryDataAccess {
     await this.VaccinesByStateAndZone.sync({ force: false });
     await this.PendingReservations.sync({ force: false });
     await this.connectDB();
+    // this.createTestData();
   }
 
   async initialize() {
@@ -157,5 +180,49 @@ module.exports = class QueryDataAccess {
       port: 5432,
     });
     await this.connection.connect();
+  }
+
+  async createTestData() {
+    await this.PendingReservations.create({
+      state_code: 1,
+      pending_amount: 20,
+      zone_code: 1,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 1,
+      pending_amount: 20,
+      zone_code: 2,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 1,
+      pending_amount: 20,
+      zone_code: 3,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 2,
+      pending_amount: 20,
+      zone_code: 1,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 2,
+      pending_amount: 20,
+      zone_code: 2,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 3,
+      pending_amount: 20,
+      zone_code: 4,
+    });
+
+    await this.PendingReservations.create({
+      state_code: 3,
+      pending_amount: 20,
+      zone_code: 5,
+    });
   }
 };

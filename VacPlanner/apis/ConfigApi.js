@@ -114,7 +114,10 @@ module.exports = class ConfigApi {
       await zoneController
         .addZones(ctx.request.body)
         .then((data) => (ctx.response.body = data))
-        .catch((e) => (ctx.response.body = "stateCode no existe"));
+        .catch((e) => {
+          ctx.response.body = "stateCode no existe";
+          ctx.response.status = 200;
+        });
     });
     router.post("/vaccenters", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
