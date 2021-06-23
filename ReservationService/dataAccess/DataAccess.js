@@ -273,9 +273,9 @@ module.exports = class CountryDataAccess {
         }
         return null;
       })
-      .catch((err) => {
-        console.log("error is", err);
-        return null;
+      .catch(() => {
+        console.log("Error actualizando el cupo");
+        throw new Error("Error actualizando el cupo")
       });
   }
 
@@ -290,13 +290,24 @@ module.exports = class CountryDataAccess {
     });
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
-      if (res.rows.filter((d) => d.datname === database).length < 1) {
-        console.log("Creating Database...");
-        this.connection.query(`CREATE DATABASE ${database};`, async () => {
+      if (err) {
+        console.log("Error creando la base de datos")
+      }
+      else {
+        if (res.rows.filter((d) => d.datname === database).length < 1) {
+          this.connection.query(`CREATE DATABASE ${database};`, async (error, response) => {
+            if(error){
+              console.log("Error creando la base de datos")
+            }
+            else{
+            console.log("Creando base de datos");
+            this.createTables();
+            }
+          });
+        } else {
+          console.log("Creando base de datos");
           this.createTables();
-        });
-      } else {
-        this.createTables();
+        }
       }
     });
   }
@@ -332,8 +343,8 @@ module.exports = class CountryDataAccess {
               s.zone_id = z.id AND z.code = ${data.zoneCode} AND 
               s.state_code = ${data.stateCode} AND
               s.assignment_criteria_id IN (${this.printAssignmentCriterias(
-                data.assignmentCriteriasIds
-              )}) ) 
+      data.assignmentCriteriasIds
+    )}) ) 
               ORDER BY s.turn ${data.turn === 3 ? "DESC" : "ASC"}
               LIMIT 1)
     RETURNING CONCAT('{"turn" :', s.turn,',"vacCenterCode":', s.vac_center_id, ',"vaccinationPeriodId": ', s.vaccination_period_id,'}');`;
