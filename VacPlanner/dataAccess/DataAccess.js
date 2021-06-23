@@ -99,7 +99,7 @@ module.exports = class CountryDataAccess {
             model: "zone",
             key: "id",
           },
-        }
+        },
       },
       {
         freezeTableName: true,
@@ -312,22 +312,28 @@ module.exports = class CountryDataAccess {
     await this.UserPermission.create({
       user_id: 1,
       permission_id: 1,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 2,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 3,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 4,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 5,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 6,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 7,
     });
@@ -338,7 +344,8 @@ module.exports = class CountryDataAccess {
     await this.UserPermission.create({
       user_id: 1,
       permission_id: 9,
-    }); await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 10,
     });
@@ -379,7 +386,7 @@ module.exports = class CountryDataAccess {
       vaccination_period_id: 1,
       turn: 1,
       state_code: 1,
-      zone_id: 1
+      zone_id: 1,
     });
     await this.Slot.create({
       assignment_criteria_id: 1,
@@ -524,9 +531,9 @@ module.exports = class CountryDataAccess {
         turn: reservation.turn,
         state_code: reservation.state_code,
         zone_id: reservation.zone_id,
-        vaccination_period_id: reservation.vaccinationPeriodId
+        vaccination_period_id: reservation.vaccinationPeriodId,
       });
-    }else{
+    } else {
       return await this.Reservation.create({
         dni: reservation.dni,
         phone: reservation.phone,
@@ -566,12 +573,14 @@ module.exports = class CountryDataAccess {
     return JSON.stringify(slots, null, 2);
   }
   async getReservations(zone_id, state_code, date1, date2, turn, today) {
-    let reservations
-    reservations = await this.connection.query(
-      `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`)
+    let reservations;
+    reservations = await this.connection
+      .query(
+        `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`
+      )
       .then((data) => data)
-      .catch((e) => console.log(e))
-    return reservations
+      .catch((e) => console.log(e));
+    return reservations;
   }
 
   //GET
@@ -594,8 +603,8 @@ module.exports = class CountryDataAccess {
   async getAVacCenter(id) {
     const vacCenter = await this.VacCenter.findOne({
       where: {
-        id: id
-      }
+        id: id,
+      },
     });
     return vacCenter;
   }
@@ -614,8 +623,7 @@ module.exports = class CountryDataAccess {
       },
     });
     let json = JSON.stringify(vaccinationPeriods, null, 2);
-    console.log(json)
-    return json
+    return json;
   }
   async getASlot(body) {
     const slots = await this.Slot.findAll({
@@ -630,18 +638,18 @@ module.exports = class CountryDataAccess {
   async getACriteria(id) {
     const criteria = await this.AssignmentCriteria.findAll({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
     return JSON.stringify(criteria, null, 2);
   }
   async getAReservation(dni) {
     const reservation = await this.Reservation.findOne({
       where: {
-        dni: dni
-      }
-    })
-    return reservation
+        dni: dni,
+      },
+    });
+    return reservation;
   }
 
   //DELETE
@@ -725,7 +733,7 @@ module.exports = class CountryDataAccess {
         id: id,
       },
     });
-    return ret
+    return ret;
   }
   async updateASlot(newName) {
     let update = {
@@ -743,10 +751,10 @@ module.exports = class CountryDataAccess {
   async updateAReservation(reservation) {
     let ret = await this.Reservation.update(reservation, {
       where: {
-        reservation_code: reservation.reservation_code
-      }
-    })
-    return ret
+        reservation_code: reservation.reservation_code,
+      },
+    });
+    return ret;
   }
 
   async checkDniInReservations(personId) {

@@ -86,7 +86,26 @@ module.exports = class ConfigApi {
       };
       ctx.status = 200;
     });
+    router.post("/vaccine_act", async (ctx, next) => {
+      try {
+        const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+        const hasPermission = await authController.checkPermissions(token, [
+          "give_vaccine",
+        ]);
+        if (!hasPermission) {
+          ctx.response.body = "Unauthorized";
+          ctx.response.status = 401;
+          return;
+        }
 
+        const res = await vaccineController.giveVaccine(ctx.request.body);
+        ctx.response.body = res.body;
+        ctx.response.status = res.status;
+      } catch {
+        ctx.response.body = "Error del servidor. Intentelo nuevamente";
+        ctx.response.status = 500;
+      }
+    });
     //POSTS
     router.post("/states", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
