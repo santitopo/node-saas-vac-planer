@@ -59,7 +59,6 @@ module.exports = class VaccinationPeriodController {
         listReservations = listReservations.rows
         let criteria = JSON.parse(await this.countryDataAcces.getACriteria(vp.assignment_criteria_id))[0]
         const fun = new Function("person", this.template(criteria.function))
-        console.log(listReservations.length)
         for (const element of listReservations) {
             if (amountToReturn > 0) {
                 var person = await this.fetchPerson(Number(element.dni));

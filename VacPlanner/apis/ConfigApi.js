@@ -246,9 +246,14 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      await stateController.deleteAState(ctx.params.code).then((data) => {
-        ctx.response.body = "Borrado satisfactoriamente",
+      const res = await stateController.deleteAState(ctx.params.code).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
           ctx.response.status = 200
+        }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
           ctx.response.status = 400
@@ -265,8 +270,14 @@ module.exports = class ConfigApi {
         return;
       }
       await zoneController.deleteAZone(ctx.params.id).then((data) => {
-        ctx.response.body = "Borrado satisfactoriamente",
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
           ctx.response.status = 200
+        }
+        
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
           ctx.response.status = 400
@@ -283,8 +294,13 @@ module.exports = class ConfigApi {
         return;
       }
       await vacCenterController.deleteAVacCenter(ctx.params.id).then((data) => {
-        ctx.response.body = "Borrado satisfactoriamente",
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
           ctx.response.status = 200
+        }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
           ctx.response.status = 400
@@ -301,8 +317,13 @@ module.exports = class ConfigApi {
         return;
       }
       await vaccineController.deleteAVaccine(ctx.params.id).then((data) => {
-        ctx.response.body = "Borrado satisfactoriamente",
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
           ctx.response.status = 200
+        }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
           ctx.response.status = 400
@@ -319,8 +340,13 @@ module.exports = class ConfigApi {
         return;
       }
       const res = await vaccinationPeriodController.deleteAVaccinationPeriod(ctx.params.id).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
         ctx.response.body = "Borrado satisfactoriamente",
           ctx.response.status = 200
+        }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
           ctx.response.status = 400
@@ -447,7 +473,7 @@ module.exports = class ConfigApi {
     router.post("/dnicenter", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
       const hasPermission = await authController.checkPermissions(token, [
-        "vaccine_crud",
+        "api_crud",
       ]);
       if (!hasPermission) {
         ctx.response.body = "Unauthorized";
@@ -470,7 +496,7 @@ module.exports = class ConfigApi {
     router.post("/smsservice", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
       const hasPermission = await authController.checkPermissions(token, [
-        "vaccine_crud",
+        "api_crud",
       ]);
       if (!hasPermission) {
         ctx.response.body = "Unauthorized";
@@ -491,7 +517,7 @@ module.exports = class ConfigApi {
     router.delete("/smsservice", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
       const hasPermission = await authController.checkPermissions(token, [
-        "vaccine_crud",
+        "api_crud",
       ]);
       if (!hasPermission) {
         ctx.response.body = "Unauthorized";
