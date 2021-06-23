@@ -79,7 +79,18 @@ module.exports = class ReservationController {
       
   }
 
+  calculateAge(date){
+    var ageDifMs = Date.now() - date.getTime();
+    var ageDate = new Date(ageDifMs); // miliseconds from epoch
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  }
+
   async addReservation(body) {
+    const reservationDate = this.parseDate(body.reservationDate);
+    if(!reservationDate){
+      return {body: "Fecha mal provista", status: 400}
+    }
+    body.reservationDate = new Date(reservationDate);
     //Step 1 - Validators
     let err;
     err = this.runValidations(body);
@@ -94,6 +105,10 @@ module.exports = class ReservationController {
     if (!person) {
       return { body: "No se encontró la cédula provista", status: 400 };
     }
+    const age = this.calculateAge(new Date(person.DateOfBirth))
+    if(age < 16 || age > 106){
+      return { body: "Debes tener una edad entre 16 y 106 años", status: 400 };
+    }
     //Step 3 (Redis) - Aplicar todos los criterios de asignacion para obtener array con ids de criterios aplicables
     const updatedCriterias = this.assignmentCriterias.getUpdatedCriterias();
 
@@ -104,10 +119,6 @@ module.exports = class ReservationController {
       return {body: `Ya existe una reserva para la cedula ${body.id}`, status: 400}
     }
     //Step 5 (SQL) - Update de cupo libre. Deberia devolver el slot
-    const reservationDate = this.parseDate(body.reservationDate);
-    if(!reservationDate){
-      return {body: "Fecha mal provista", status: 400}
-    }
     const slotData = await this.countryDataAccess.updateSlot({
       turn: body.turn,
       reservationDate: reservationDate,

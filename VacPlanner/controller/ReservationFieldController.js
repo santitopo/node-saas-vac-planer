@@ -7,7 +7,7 @@ module.exports = class ReservationFieldController {
 
   async add(ctx, next) {
     const template = `${ctx.request.body.fieldName} = (input, next) => {
-        if (input.${ctx.request.body.fieldName} && ${ctx.request.body.function}) {
+        if ((input.${ctx.request.body.fieldName}) && ${ctx.request.body.function}) {
           return next(null, input);
         } else {
           return next("${ctx.request.body.error}", null);
