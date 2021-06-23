@@ -25,4 +25,4 @@ for (var i = 0; i < 2000; i++) {
     date: new Date(`2020-10-${Math.floor(Math.random() * (31 - 1)) + 1}`),
   });
 }
-add({ state_code, zone_code, age, turn, date });
+console.log("Terminé la carga");
