@@ -80,4 +80,23 @@ module.exports = class AssignmentCriteriaController {
       return null;
     }
   }
+  async deleteRedis(id){
+    try {
+      //Ir a buscar a redis
+      var allCriterias = (await this.getCriterias()) || [];
+      //Agregar a redis
+      if(allCriterias){
+        let aux = allCriterias.filter(item => item.index == id)
+        if(aux.length==0){
+          return "No existse un criterio con ese id"
+        }
+        allCriterias = allCriterias.filter(item => item.index != id)
+        await this.setCriterias(allCriterias);
+        return "Borrado satisfactoriamente"
+      }
+    } catch (e) {
+      console.log(e);
+      return null;
+    }
+  }
 };

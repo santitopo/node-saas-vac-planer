@@ -1,14 +1,25 @@
 var fs = require("fs");
 var csv = require("csv");
 var axios = require("axios").default;
+var Bottleneck = require("bottleneck");
+
+
+const limiter = new Bottleneck({
+  maxConcurrent: null,
+  minTime: 1
+});
 
 const dataset = [];
 let counter = 0;
 async function reservationRequest(reservation, counter) {
   try {
-    return axios.post("http://localhost:5004/reservations", reservation)
+    const res = await limiter.schedule(() => {
+      reservation.timestampI = Date.now();
+      return axios.post("http://localhost:5004/reservations", reservation)}
+      )
+    console.log(res.data.timestampD, counter);
   } catch (error) {
-    console.log(error, counter)
+    console.log(error.response.data)
   }
 }
 
@@ -46,25 +57,10 @@ readStream1.pipe(parser);
 
 const initApi = () => {
   console.log("finish init");
-  const loop = () => {
-    const reservation = dataset[counter];
-    reservation.timestampI = Date.now();
-    reservationRequest(reservation, counter).then((res) => {
-      console.log(res.data, counter);
-      counter++;
-      loop();
-    }).catch((error) => {
-      console.log(error.response.data, counter)
-      counter++;
-      loop();
-    })
-  }
 
-  loop();
-  // dataset.forEach((r) => {
-  //   if(counter < 4000) {
-  //     counter++;
-  //     reservationRequest(r, counter);
-  //   }
-  // });
+  dataset.forEach((r)=> {
+    const reservation = r;
+      reservationRequest(reservation, counter);
+      counter++;
+  })
 };

@@ -39,7 +39,6 @@ module.exports = class ConfigApi {
       slotController
     );
 
-    app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
     app.use(bodyParser());
     app.use(logger());
     app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
@@ -56,6 +55,19 @@ module.exports = class ConfigApi {
       }
       reservationField.add(ctx, next);
     });
+    router.delete("/reservationfields/:fieldname", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "validation_add",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
+      }
+      reservationField.delete(ctx);
+    });
+
     router.post("/assignmentCriteria", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
       const hasPermission = await authController.checkPermissions(token, [
@@ -87,7 +99,40 @@ module.exports = class ConfigApi {
       };
       ctx.status = 200;
     });
+    router.delete("/assignmentCriteria/:id", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "assignment_criteria_add",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
+      }
+       return await assignmentCriteria.deleteRedis(ctx.params.id)
+      .then((data)=> {ctx.response.status = 200, ctx.response.body = data})
+      .catch((e)=> {ctx.response.status = 400, ctx.response.body="Error eliminando el criterio de asignacion"})
+    });
+    router.post("/vaccine_act", async (ctx, next) => {
+      try {
+        const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+        const hasPermission = await authController.checkPermissions(token, [
+          "give_vaccine",
+        ]);
+        if (!hasPermission) {
+          ctx.response.body = "Unauthorized";
+          ctx.response.status = 401;
+          return;
+        }
 
+        const res = await vaccineController.giveVaccine(ctx.request.body);
+        ctx.response.body = res.body;
+        ctx.response.status = res.status;
+      } catch {
+        ctx.response.body = "Error del servidor. Intentelo nuevamente";
+        ctx.response.status = 500;
+      }
+    });
     //POSTS
     router.post("/states", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -99,7 +144,13 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      ctx.response.body = await stateController.addStates(ctx.request.body);
+      await stateController.addStates(ctx.request.body).then((data) => {
+        ctx.response.body = data,
+          ctx.response.status = 200
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que state code debe ser unico",
+          ctx.request.status = 400
+      });
     });
     router.post("/zones", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -113,8 +164,13 @@ module.exports = class ConfigApi {
       }
       await zoneController
         .addZones(ctx.request.body)
-        .then((data) => (ctx.response.body = data))
-        .catch((e) => (ctx.response.body = "stateCode no existe"));
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        }).catch((e) => {
+          ctx.response.body = "Ocurrio un error, recuerda que un state con el codgio provisto debe existir";
+          ctx.response.status = 400;
+        });
     });
     router.post("/vaccenters", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -128,8 +184,13 @@ module.exports = class ConfigApi {
       }
       await vacCenterController
         .addVacCenters(ctx.request.body)
-        .then((data) => (ctx.response.body = data))
-        .catch((e) => (ctx.response.body = "zoneId no existe"));
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        }).catch((e) => {
+          ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
+            ctx.response.status = 400
+        });
     });
     router.post("/vaccines", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -143,8 +204,14 @@ module.exports = class ConfigApi {
       }
       await vaccineController
         .addVaccines(ctx.request.body)
-        .then((data) => (ctx.response.body = data))
-        .catch((e) => (ctx.response.body = "zoneId no existe"));
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        })
+        .catch((e) => {
+          ctx.response.body = "Ocurrio un error",
+            ctx.response.status = 400
+        });
     });
     router.post("/vaccinationperiods", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -158,8 +225,14 @@ module.exports = class ConfigApi {
       }
       await vaccinationPeriodController
         .addVaccinationPeriod(ctx.request.body)
-        .then((data) => (ctx.response.body = data))
-        .catch((e) => (ctx.response.body = e));
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        })
+        .catch((e) => {
+          ctx.response.body = 'Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir, tambien lo deben hacer assignment criteria, vaccine, zone y state code',
+            ctx.response.status = 400
+        });
     });
 
     //DELETE
@@ -173,12 +246,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await stateController.deleteAState(ctx.params.code);
-      if (res) {
-        ctx.response.body = "Eliminada satisfactoriamente";
-      } else {
-        ctx.response.body = "No se pudo eliminar, el codigo no existe";
-      }
+      const res = await stateController.deleteAState(ctx.params.code).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
+          ctx.response.status = 200
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.delete("/zones/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -190,12 +269,19 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await zoneController.deleteAZone(ctx.params.id);
-      if (res) {
-        ctx.response.body = "Eliminada satisfactoriamente";
-      } else {
-        ctx.response.body = "No se pudo eliminar, el codigo no existe";
-      }
+      await zoneController.deleteAZone(ctx.params.id).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
+          ctx.response.status = 200
+        }
+        
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.delete("/vaccenters/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -207,12 +293,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vacCenterController.deleteAVacCenter(ctx.params.id);
-      if (res) {
-        ctx.response.body = "Eliminada satisfactoriamente";
-      } else {
-        ctx.response.body = "No se pudo eliminar, el codigo no existe";
-      }
+      await vacCenterController.deleteAVacCenter(ctx.params.id).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
+          ctx.response.status = 200
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.delete("/vaccines/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -224,12 +316,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vaccineController.deleteAVaccine(ctx.params.id);
-      if (res) {
-        ctx.response.body = "Eliminada satisfactoriamente";
-      } else {
-        ctx.response.body = "No se pudo eliminar, el codigo no existe";
-      }
+      await vaccineController.deleteAVaccine(ctx.params.id).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+          ctx.response.body = "Borrado satisfactoriamente",
+          ctx.response.status = 200
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.delete("/vaccinationperiods/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -241,14 +339,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vaccinationPeriodController.deleteAVaccinationPeriod(
-        ctx.params.id
-      );
-      if (res) {
-        ctx.response.body = "Eliminada satisfactoriamente";
-      } else {
-        ctx.response.body = "No se pudo eliminar, el codigo no existe";
-      }
+      const res = await vaccinationPeriodController.deleteAVaccinationPeriod(ctx.params.id).then((data) => {
+        if(data ==0){
+          ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }else{
+        ctx.response.body = "Borrado satisfactoriamente",
+          ctx.response.status = 200
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
 
     //UPDATE
@@ -262,15 +364,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await stateController.updateAState(
-        ctx.params.code,
-        ctx.request.body
-      );
-      if (res) {
-        ctx.response.body = "Nombre modificado correctamente";
-      } else {
-        ctx.response.body = "No se pudo modificar, el codigo no existe";
-      }
+      const res = await stateController.updateAState(ctx.params.code, ctx.request.body).then((data) => {
+        if (data[0]) {
+          ctx.response.body = "Actualizado satisfactoriamente",
+          ctx.response.status = 200
+        } else {
+          ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.put("/zones/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -282,15 +387,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await zoneController.updateAZone(
-        ctx.params.id,
-        ctx.request.body
-      );
-      if (res) {
-        ctx.response.body = "Nombre modificado correctamente";
-      } else {
-        ctx.response.body = "No se pudo modificar, el codigo no existe";
-      }
+      const res = await zoneController.updateAZone(ctx.params.id, ctx.request.body).then((data) => {
+        if (data[0]) {
+          ctx.response.body = "Actualizado satisfactoriamente",
+          ctx.response.status = 200
+        } else {
+          ctx.response.body = "No se actualizo, recuerda que una zone con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.put("/vaccenters/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -302,15 +410,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vacCenterController.updateAVacCenter(
-        ctx.params.id,
-        ctx.request.body
-      );
-      if (res) {
-        ctx.response.body = "Nombre modificado correctamente";
-      } else {
-        ctx.response.body = "No se pudo modificar, el codigo no existe";
-      }
+      const res = await vacCenterController.updateAVacCenter(ctx.params.id, ctx.request.body).then((data) => {
+        if (data[0]) {
+          ctx.response.body = "Actualizado satisfactoriamente",
+          ctx.response.status = 200
+        } else {
+          ctx.response.body = "No se actualizo, recuerda que un vac center con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.put("/vaccines/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -322,15 +433,18 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vaccineController.updateAVaccine(
-        ctx.params.id,
-        ctx.request.body
-      );
-      if (res) {
-        ctx.response.body = "Modificado correctamente";
-      } else {
-        ctx.response.body = "No se pudo modificar, el codigo no existe";
-      }
+      const res = await vaccineController.updateAVaccine(ctx.params.id, ctx.request.body).then((data) => {
+        if (data[0]) {
+          ctx.response.body = "Actualizado satisfactoriamente",
+          ctx.response.status = 200
+        } else {
+          ctx.response.body = "No se actualizo, recuerda que una vaccine con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
     });
     router.put("/vaccinationperiods/:id", async (ctx, next) => {
       const token = ctx.request.headers["authorization"].split("Bearer ")[1];
@@ -342,15 +456,84 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-      const res = await vaccinationPeriodController.updateAVaccinationPeriod(
-        ctx.params.id,
-        ctx.request.body
-      );
-      if (res) {
-        ctx.response.body = "Modificado correctamente";
-      } else {
-        ctx.response.body = "No se pudo modificar, el codigo no existe";
+      const res = await vaccinationPeriodController.updateAVaccinationPeriod(ctx.params.id, ctx.request.body).then((data) => {
+        if (data) {
+          ctx.response.body = "Actualizado satisfactoriamente",
+          ctx.response.status = 200
+        } else {
+          ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
+          ctx.response.status = 400
+        }
+      }).catch((e) => {
+        ctx.response.body = "Ocurrio un error, recuerda que un vaccination period con el codigo provisto debe existir",
+          ctx.response.status = 400
+      });
+    });
+
+    router.post("/dnicenter", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "api_crud",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
       }
+      await this.countryDataAccess
+        .addDniCenter(ctx.request.body)
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        })
+        .catch((e) => {
+          ctx.response.body = "Ocurrio un error",
+            ctx.response.status = 400
+        });
+    });
+
+    //SMS
+    router.post("/smsservice", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "api_crud",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
+      }
+      await this.countryDataAccess
+        .addSMSService(ctx.request.body)
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        })
+        .catch((e) => {
+          ctx.response.body = "Ocurrio un error",
+            ctx.response.status = 400
+        });
+    });
+    router.delete("/smsservice", async (ctx, next) => {
+      const token = ctx.request.headers["authorization"].split("Bearer ")[1];
+      const hasPermission = await authController.checkPermissions(token, [
+        "api_crud",
+      ]);
+      if (!hasPermission) {
+        ctx.response.body = "Unauthorized";
+        ctx.response.status = 401;
+        return;
+      }
+      await this.countryDataAccess
+        .deleteSMSService(ctx.request.body)
+        .then((data) => {
+          ctx.response.body = data,
+            ctx.response.status = 200
+        })
+        .catch((e) => {
+          ctx.response.body = "Ocurrio un error",
+            ctx.response.status = 400
+        });
     });
 
     app.use(router.routes());

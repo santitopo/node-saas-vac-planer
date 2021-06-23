@@ -10,56 +10,66 @@ module.exports = class QueryDataAccess {
   async vaccinesByStateAndTurn(params) {
     const initialDate = new Date(params[0]);
     const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        }
-      },
-    });
-    return vaccines
+    try {
+      const vaccines = await this.VaccinesByStateAndTurn.findAll({
+        where: {
+          date: {
+            [Op.between]: [initialDate, finalDate],
+          },
+        },
+      });
+      return { body: vaccines, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async vaccinesByStateAndZone(params) {
-    const initialDate = params[0];
-    const finalDate = params[1];
-    const vaccines = await this.VaccinesByStateAndZone.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        }
-      },
-    });
-    return vaccines
+    try {
+      const initialDate = params[0];
+      const finalDate = params[1];
+      const vaccines = await this.VaccinesByStateAndZone.findAll({
+        where: {
+          date: {
+            [Op.between]: [initialDate, finalDate],
+          },
+        },
+      });
+      return { body: vaccines, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
-  async pendingReservaionsByDepartment() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: ['state_code', [Sequelize.fn('sum', Sequelize.col('vaccine_amount')), 'total']],
-      group: ['state_code']
-    });
-    return pendingReservation
+  async pendingReservationsByDepartment() {
+    try {
+      const pendingReservation = await this.PendingReservations.findAll({
+        attributes: [
+          "state_code",
+          [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
+        ],
+        group: ["state_code"],
+      });
+      return { body: pendingReservation, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
-  async pendingReservaionsByDepartmentAndZone() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: ['state_code', 'zone_code', [Sequelize.fn('sum', Sequelize.col('vaccine_amount')), 'total']],
-      group: ['state_code', 'zone_code']
-    });
-    return pendingReservation
-  }
-
-  async givenAndRemainingVaccines(params) {
-    const initialDate = new Date(params[0]);
-    const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        }
-      },
-    });
-    return vaccines
+  async pendingReservationsByDepartmentAndZone() {
+    try {
+      const pendingReservation = await this.PendingReservations.findAll({
+        attributes: [
+          "state_code",
+          "zone_code",
+          [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
+        ],
+        group: ["state_code", "zone_code"],
+      });
+      return { body: pendingReservation, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async createTables() {
@@ -75,10 +85,10 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndTurn = this.sequelize.define(
       "vaccines_by_state_and_turn",
       {
-        state_code: { type: Sequelize.STRING, primaryKey: true },
-        turn: { type: Sequelize.STRING, primaryKey: true },
+        state_code: { type: Sequelize.INTEGER, primaryKey: true },
+        turn: { type: Sequelize.INTEGER, primaryKey: true },
         date: { type: Sequelize.DATE, primaryKey: true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER },
       },
       {
         freezeTableName: true,
@@ -88,11 +98,11 @@ module.exports = class QueryDataAccess {
     this.VaccinesByStateAndZone = this.sequelize.define(
       "vaccines_by_state_and_zone",
       {
-        state_code: { type: Sequelize.STRING, primaryKey: true },
-        zone_code: { type: Sequelize.STRING, primaryKey: true },
+        state_code: { type: Sequelize.INTEGER, primaryKey: true },
+        zone_code: { type: Sequelize.INTEGER, primaryKey: true },
         date: { type: Sequelize.DATE, primaryKey: true },
         age: { type: Sequelize.INTEGER, primaryKey: true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
+        vaccine_amount: { type: Sequelize.INTEGER },
       },
       {
         freezeTableName: true,
@@ -102,9 +112,9 @@ module.exports = class QueryDataAccess {
     this.PendingReservations = this.sequelize.define(
       "pending_reservations",
       {
-        state_code: { type: Sequelize.STRING, primaryKey: true },
-        vaccine_amount: { type: Sequelize.INTEGER, primaryKey: true },
-        zone_code: { type: Sequelize.STRING, primaryKey: true },
+        state_code: { type: Sequelize.INTEGER, primaryKey: true },
+        pending_amount: { type: Sequelize.INTEGER },
+        zone_code: { type: Sequelize.INTEGER, primaryKey: true },
       },
       {
         freezeTableName: true,
@@ -151,62 +161,4 @@ module.exports = class QueryDataAccess {
     });
     await this.connection.connect();
   }
-
-  async createTestData() {
-      //await this.createPendingReservationsData();
-      await this.createVaccinesByStateAndTurnData();
-  }
-
-  async createPendingReservationsData() {
-    await this.PendingReservations.create({
-      state_code: "Code1",
-      vaccine_amount: 20,
-      zone_code: "Code1",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code1",
-      vaccine_amount: 20,
-      zone_code: "Code2",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code1",
-      vaccine_amount: 20,
-      zone_code: "Code3",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code2",
-      vaccine_amount: 20,
-      zone_code: "Code1",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code2",
-      vaccine_amount: 20,
-      zone_code: "Code2",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code3",
-      vaccine_amount: 20,
-      zone_code: "Code4",
-    });
-
-    await this.PendingReservations.create({
-      state_code: "Code3",
-      vaccine_amount: 20,
-      zone_code: "Code5",
-    });
-  }
-
-  async createVaccinesByStateAndTurnData() {
-    await this.VaccinesByStateAndTurn.create({
-      state_code: 1,
-        turn: "Mat",
-        date: new Date(),
-        vaccine_amount: 50,
-    });
-  }
-}
+};

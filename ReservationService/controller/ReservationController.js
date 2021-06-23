@@ -4,19 +4,26 @@ const AssignmentCriterias = require("../services/assignmentCriterias");
 const MQReservations = require("../communication/mqReservations");
 const uniqid = require("uniqid");
 var moment = require('moment');
+const NonAssignedReservationsQueue = require('bull')
+const redis = require("redis");
+const bluebird = require("bluebird")
 
 module.exports = class ReservationController {
   constructor(countryDataAccess) {
     this.pipes = new Pipes();
     this.assignmentCriterias = new AssignmentCriterias();
     this.mq = new MQReservations();
+    this.mqNotAssignedRes = new NonAssignedReservationsQueue("ReservationQueryMQ")
     this.countryDataAccess = countryDataAccess;
+    bluebird.promisifyAll(redis);
+    this.client = redis.createClient();
   }
 
   async fetchPerson(personId) {
+    let url = await this.client.getAsync("DniCenter")
     try {
       const response = await axios.get(
-        "http://localhost:5006/people/" + personId
+        `${url}` + personId
       );
       return response.data;
     } catch (error) {
@@ -25,13 +32,17 @@ module.exports = class ReservationController {
   }
 
   runValidations(body) {
-    const validationError = this.pipes.pipeline.run(body);
-    if (validationError) {
-      const err = {
-        status: validationError.code,
-        body: validationError.message,
-      };
-      return err;
+    try {
+      const validationError = this.pipes.pipeline.run(body);
+      if (validationError) {
+        const err = {
+          status: validationError.code,
+          body: validationError.message,
+        };
+        return err;
+      }
+    } catch {
+      return "Error reservando el cupo, intente mas tarde."
     }
   }
 
@@ -45,8 +56,10 @@ module.exports = class ReservationController {
         vaccinationPeriodId: slot ? slot.vaccinationPeriodId : null,
         date: requestBody.reservationDate,
         turn: slot ? slot.turn : requestBody.turn,
+        state_code: slot ? (slot.state_code ? slot.state_code : requestBody.stateCode) : requestBody.stateCode,
+        zone_id: slot ? (slot.zone_id ? slot.zone_id : requestBody.zoneCode) : requestBody.zoneCode
       };
-      await this.mq.add(mq_reservation);
+      await this.mq.add(mq_reservation, { removeOnComplete: true });
     } catch {
       return "Error en la Message Queue";
     }
@@ -82,7 +95,18 @@ module.exports = class ReservationController {
 
   }
 
+  calculateAge(date) {
+    var ageDifMs = Date.now() - date.getTime();
+    var ageDate = new Date(ageDifMs); // miliseconds from epoch
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  }
+
   async addReservation(body) {
+    const reservationDate = this.parseDate(body.reservationDate);
+    if (!reservationDate) {
+      return { body: "Fecha mal provista", status: 400 }
+    }
+    body.reservationDate = new Date(reservationDate);
     //Step 1 - Validators
     let err;
     err = this.runValidations(body);
@@ -97,6 +121,10 @@ module.exports = class ReservationController {
     if (!person) {
       console.log(`No se encontro la cedula ${body.id}`)
       return { body: `No se encontró la cédula ${body.id}`, status: 400 };
+    }
+    const age = this.calculateAge(new Date(person.DateOfBirth))
+    if (age < 16 || age > 106) {
+      return { body: "Debes tener una edad entre 16 y 106 años", status: 400 };
     }
     //Step 3 (Redis) - Aplicar todos los criterios de asignacion para obtener array con ids de criterios aplicables
     const updatedCriterias = this.assignmentCriterias.getUpdatedCriterias();
@@ -150,31 +178,51 @@ module.exports = class ReservationController {
     // If pudo reservar ->  Retorno HTTP
     if (slotData) {
       console.log(`Se reservo un cupo para la cedula ${body.id} con el codigo de reserva ${reservationCode}`)
+      let object = {
+        dni: person.DocumentId,
+        reservationCode,
+        state: body.stateCode,
+        zone: body.zoneCode,
+        vacCenterCode: slotData.vacCenterCode,
+        vaccinationDate: reservationDate,
+        turn: slotData.turn,
+        timestampI: new Date(body.timestampI).toISOString(),
+        timestampR: new Date(Date.now()).toISOString(),
+        timestampD: Date.now() - new Date(body.timestampI) + " ms",
+      }
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      for (let i = 0; i < arr.length; i++) {
+        await axios.post(arr[i].url, object)
+          .then((data) => data)
+          .catch((e) => console.log("Error al enviar request a API SMS"))
+      };
+      //let aux = await axios.post("http://localhost:5007/sms/", object).then((data)=> data).catch((e)=>console.log(e))
+
       return {
-        body: {
-          dni: person.id,
-          reservationCode,
-          state: body.stateCode,
-          zone: body.zoneCode,
-          vacCenterCode: slotData.vacCenterCode,
-          vaccinationDate: reservationDate,
-          turn: slotData.turn,
-          timestampI: new Date(body.timestampI).toISOString(),
-          timestampR: new Date(Date.now()).toISOString(),
-          timestampD: Date.now() - new Date(body.timestampI) + " ms",
-        },
+        body: object,
         status: 200,
       };
     } else {
       console.log(`No se pudo reservar cupo para la cedula ${body.id}, se asignara mas adelante`)
+      let object = {
+        dni: person.DocumentId,
+        reservationCode,
+        message: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
+        timestampI: new Date(body.timestampI).toISOString(),
+        timestampR: new Date(Date.now()).toISOString(),
+        timestampD: Date.now() - new Date(body.timestampI) + " ms",
+      }
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      for (let i = 0; i < arr.length; i++) {
+        await axios.post(arr[i].url, object)
+          .then((data) => data)
+          .catch((e) => console.log("Error al enviar request a API SMS"))
+      };
+      //axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
+      await this.mqNotAssignedRes.add({ state_code: body.stateCode, zone_code: body.zoneCode, assigned: false }, { removeOnComplete: true })
+      console.log("added to mq notAssignedRes")
       return {
-        body: {
-          reservationCode,
-          message: "La solicitud se asignara cuando se asignen nuevo cupos.", //sacar del config
-          timestampI: new Date(body.timestampI).toISOString(),
-          timestampR: new Date(Date.now()).toISOString(),
-          timestampD: Date.now() - new Date(body.timestampI) + " ms",
-        },
+        body: object,
         status: 200,
       };
     }

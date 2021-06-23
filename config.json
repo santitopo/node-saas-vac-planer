@@ -4,15 +4,23 @@
   "user": "postgres",
   "password": "password",
   "database": "countrydb",
-  "queryDatabase" : "querydatabase",
+  "queryDatabase": "querydatabase",
   "tokenLife": "2h",
   "rolesPermissions": {
-    "superadmin": ["create_users","vac_center_crud", "vaccine_crud", "vac_period_crud","state_crud",
+    "superadmin": [
+      "create_users",
+      "vac_center_crud",
+      "vaccine_crud",
+      "vac_period_crud",
+      "state_crud",
       "zone_crud",
       "assignment_criteria_add",
       "validation_add",
       "api_crud",
-      "create_users","give_vaccine","query"],
+      "create_users",
+      "give_vaccine",
+      "query"
+    ],
     "health_authority": ["vac_center_crud", "vaccine_crud", "vac_period_crud"],
     "technical": [
       "state_crud",
@@ -24,5 +32,8 @@
     ],
     "vaccinator": ["give_vaccine"],
     "statistic": ["query"]
-  }
+  },
+  "reservationQueryMQ": "ReservationQueryMQ",
+  "vaccinationQueryMQ": "VaccinationQueryMQ",
+  "concurrentMQProcessing": "4"
 }

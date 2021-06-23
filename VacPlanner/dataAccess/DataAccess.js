@@ -3,6 +3,8 @@ const config = require("../../config.json");
 const { Client } = require("pg");
 const { Sequelize, Op } = require("sequelize");
 const crypto = require("crypto");
+const redis = require("redis");
+
 
 const permissionsQuery = `
 select p.name from sys_user u, user_permission up, permission p
@@ -12,6 +14,7 @@ AND up.permission_id = p.id`;
 module.exports = class CountryDataAccess {
   constructor() {
     this.initialize();
+    this.client = redis.createClient();
   }
 
   async createTables() {
@@ -99,7 +102,7 @@ module.exports = class CountryDataAccess {
             model: "zone",
             key: "id",
           },
-        }
+        },
       },
       {
         freezeTableName: true,
@@ -301,6 +304,9 @@ module.exports = class CountryDataAccess {
     await this.Permission.create({
       name: "query",
     });
+    await this.Permission.create({
+      name: "api_crud",
+    });
     await this.User.create({
       user_name: "santitopo",
       password: hash,
@@ -312,22 +318,28 @@ module.exports = class CountryDataAccess {
     await this.UserPermission.create({
       user_id: 1,
       permission_id: 1,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 2,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 3,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 4,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 5,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 6,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 7,
     });
@@ -338,9 +350,14 @@ module.exports = class CountryDataAccess {
     await this.UserPermission.create({
       user_id: 1,
       permission_id: 9,
-    });await this.UserPermission.create({
+    });
+    await this.UserPermission.create({
       user_id: 1,
       permission_id: 10,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 11,
     });
     await this.UserPermission.create({
       user_id: 2,
@@ -378,8 +395,8 @@ module.exports = class CountryDataAccess {
       assigned: true,
       vaccination_period_id: 1,
       turn: 1,
-      state_code:1,
-      zone_id:1
+      state_code: 1,
+      zone_id: 1,
     });
     await this.Slot.create({
       assignment_criteria_id: 1,
@@ -394,11 +411,11 @@ module.exports = class CountryDataAccess {
       zone_id: 1,
       vaccination_period_id: 1,
     });
+    
   }
 
   //POST
   async addUserPermission(userId, permissionId) {
-    console.log("llegue");
     return this.UserPermission.create({
       permission_id: permissionId,
       user_id: userId,
@@ -513,6 +530,32 @@ module.exports = class CountryDataAccess {
       vaccination_period_id: slot.vaccination_period_id,
     });
   }
+  async addReservation(reservation) {
+    if (reservation.vaccinationPeriodId) {
+      return await this.Reservation.create({
+        dni: reservation.dni,
+        phone: reservation.phone,
+        reservation_code: reservation.reservationCode,
+        date: reservation.date,
+        assigned: reservation.assigned,
+        turn: reservation.turn,
+        state_code: reservation.state_code,
+        zone_id: reservation.zone_id,
+        vaccination_period_id: reservation.vaccinationPeriodId,
+      });
+    } else {
+      return await this.Reservation.create({
+        dni: reservation.dni,
+        phone: reservation.phone,
+        reservation_code: reservation.reservationCode,
+        date: reservation.date,
+        assigned: reservation.assigned,
+        turn: reservation.turn,
+        state_code: reservation.state_code,
+        zone_id: reservation.zone_id,
+      });
+    }
+  }
 
   //GET ALL
   async getStates() {
@@ -539,29 +582,15 @@ module.exports = class CountryDataAccess {
     const slots = await this.Slot.findAll();
     return JSON.stringify(slots, null, 2);
   }
-  async getReservations(zone_id,state_code,date1, date2,turn, today){
-    let reservations
-    reservations = await this.connection.query(
-      `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`)
-      .then((data)=>  data)
-      .catch((e)=> console.log(e))
-    
-    /*findAll({
-      where: {
-        assigned: false,
-        state_code: state_code,
-        zone_id: zone_id,
-        date: {
-          $or:{
-            $between: [ date1, date2],
-            $lte: today
-          }
-          $lte: new Date()
-        }
-        
-      }
-    })*/
-    return reservations
+  async getReservations(zone_id, state_code, date1, date2, turn, today) {
+    let reservations;
+    reservations = await this.connection
+      .query(
+        `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`
+      )
+      .then((data) => data)
+      .catch((e) => console.log(e));
+    return reservations;
   }
 
   //GET
@@ -584,10 +613,10 @@ module.exports = class CountryDataAccess {
   async getAVacCenter(id) {
     const vacCenter = await this.VacCenter.findOne({
       where: {
-        id: id
-      }
+        id: id,
+      },
     });
-    return /*JSON.stringify(*/vacCenter/*, null, 2)*/;
+    return vacCenter;
   }
   async getAVaccine(id) {
     const vaccines = await this.Vaccine.findAll({
@@ -604,8 +633,7 @@ module.exports = class CountryDataAccess {
       },
     });
     let json = JSON.stringify(vaccinationPeriods, null, 2);
-    console.log(json)
-    return json
+    return json;
   }
   async getASlot(body) {
     const slots = await this.Slot.findAll({
@@ -617,13 +645,21 @@ module.exports = class CountryDataAccess {
     });
     return JSON.stringify(slots, null, 2);
   }
-  async getACriteria(id){
+  async getACriteria(id) {
     const criteria = await this.AssignmentCriteria.findAll({
-      where:{
-        id: id
-      }
-    })
+      where: {
+        id: id,
+      },
+    });
     return JSON.stringify(criteria, null, 2);
+  }
+  async getAReservation(dni) {
+    const reservation = await this.Reservation.findOne({
+      where: {
+        dni: dni,
+      },
+    });
+    return reservation;
   }
 
   //DELETE
@@ -707,7 +743,7 @@ module.exports = class CountryDataAccess {
         id: id,
       },
     });
-    return ret
+    return ret;
   }
   async updateASlot(newName) {
     let update = {
@@ -722,13 +758,13 @@ module.exports = class CountryDataAccess {
       },
     });
   }
-  async updateAReservation(reservation){
+  async updateAReservation(reservation) {
     let ret = await this.Reservation.update(reservation, {
       where: {
-        reservation_code: reservation.reservation_code
-      }
-    })
-    return ret
+        reservation_code: reservation.reservation_code,
+      },
+    });
+    return ret;
   }
 
   async checkDniInReservations(personId) {
@@ -749,6 +785,53 @@ module.exports = class CountryDataAccess {
     });
     return reservation;
   }
+
+  //DNI
+  async addDniCenter(body) {
+    this.client.set("DniCenter", body.url, redis.print);
+  }
+  //SMS
+  async addSMSService(body) {
+    if (body.id && body.url) {
+      let sms = {
+        id: body.id,
+        url: body.url
+      }
+      let arr = (await this.client.getAsync("SMSService") || "[]")
+      arr = JSON.parse(arr)
+      if (arr) {
+        let aux = arr.filter(item => item.id == body.id)
+        if (aux.length > 0) {
+          return "No se pudo agregar esta url, ya existe una url con esa id"
+        }
+      }
+      arr.push(sms)
+      arr = JSON.stringify(arr)
+      await this.client.setAsync("SMSService", arr)
+      return "Agregado satisfactoriamente"
+    } else {
+      return "No se pudo agregar esta url, recuerde debe enviar los campos id y url"
+    }
+  }
+  async deleteSMSService(body) {
+    if (body.id) {
+      let arr = (await this.client.getAsync("SMSService") || "[]")
+      arr = JSON.parse(arr)
+      if (arr) {
+        let aux = arr.filter(item => item.id == body.id)
+        if(aux.length==0){
+          return "No existe un objeto con el id provisto"
+        }
+        arr = arr.filter(item => item.id != body.id)
+      }
+      arr = JSON.stringify(arr)
+      await this.client.setAsync("SMSService", arr)
+      return "Borrado satisfactoriamente"
+    } else {
+      return "No se pudo agregar esta url, recuerde debe enviar los campos id y url"
+    }
+  }
+
 
   async initialize() {
     // create db if it doesn't already exist
