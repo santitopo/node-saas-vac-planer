@@ -304,6 +304,9 @@ module.exports = class CountryDataAccess {
     await this.Permission.create({
       name: "query",
     });
+    await this.Permission.create({
+      name: "api_crud",
+    });
     await this.User.create({
       user_name: "santitopo",
       password: hash,
@@ -351,6 +354,10 @@ module.exports = class CountryDataAccess {
     await this.UserPermission.create({
       user_id: 1,
       permission_id: 10,
+    });
+    await this.UserPermission.create({
+      user_id: 1,
+      permission_id: 11,
     });
     await this.UserPermission.create({
       user_id: 2,
@@ -404,8 +411,7 @@ module.exports = class CountryDataAccess {
       zone_id: 1,
       vaccination_period_id: 1,
     });
-    this.client.set("DniCenter", "http://localhost:5006/people/", redis.print);
-    this.client.set("SMSService", '[{"id":"1", "url":"http://localhost:5007/sms/"}]', redis.print)
+    
   }
 
   //POST
