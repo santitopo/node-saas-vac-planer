@@ -10,63 +10,66 @@ module.exports = class QueryDataAccess {
   async vaccinesByStateAndTurn(params) {
     const initialDate = new Date(params[0]);
     const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
+    try {
+      const vaccines = await this.VaccinesByStateAndTurn.findAll({
+        where: {
+          date: {
+            [Op.between]: [initialDate, finalDate],
+          },
         },
-      },
-    });
-    return vaccines;
+      });
+      return { body: vaccines, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async vaccinesByStateAndZone(params) {
-    const initialDate = params[0];
-    const finalDate = params[1];
-    const vaccines = await this.VaccinesByStateAndZone.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
+    try {
+      const initialDate = params[0];
+      const finalDate = params[1];
+      const vaccines = await this.VaccinesByStateAndZone.findAll({
+        where: {
+          date: {
+            [Op.between]: [initialDate, finalDate],
+          },
         },
-      },
-    });
-    return vaccines;
+      });
+      return { body: vaccines, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async pendingReservationsByDepartment() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: [
-        "state_code",
-        [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
-      ],
-      group: ["state_code"],
-    });
-    return pendingReservation;
+    try {
+      const pendingReservation = await this.PendingReservations.findAll({
+        attributes: [
+          "state_code",
+          [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
+        ],
+        group: ["state_code"],
+      });
+      return { body: pendingReservation, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async pendingReservationsByDepartmentAndZone() {
-    const pendingReservation = await this.PendingReservations.findAll({
-      attributes: [
-        "state_code",
-        "zone_code",
-        [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
-      ],
-      group: ["state_code", "zone_code"],
-    });
-    return pendingReservation;
-  }
-
-  async givenAndRemainingVaccines(params) {
-    const initialDate = new Date(params[0]);
-    const finalDate = new Date(params[1]);
-    const vaccines = await this.VaccinesByStateAndTurn.findAll({
-      where: {
-        date: {
-          [Op.between]: [initialDate, finalDate],
-        },
-      },
-    });
-    return vaccines;
+    try {
+      const pendingReservation = await this.PendingReservations.findAll({
+        attributes: [
+          "state_code",
+          "zone_code",
+          [Sequelize.fn("sum", Sequelize.col("pending_amount")), "total"],
+        ],
+        group: ["state_code", "zone_code"],
+      });
+      return { body: pendingReservation, status: 200 };
+    } catch {
+      return { body: "Error en la consulta, intente mas tarde", status: 500 };
+    }
   }
 
   async createTables() {

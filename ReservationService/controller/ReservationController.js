@@ -32,13 +32,17 @@ module.exports = class ReservationController {
   }
 
   runValidations(body) {
-    const validationError = this.pipes.pipeline.run(body);
-    if (validationError) {
-      const err = {
-        status: validationError.code,
-        body: validationError.message,
-      };
-      return err;
+    try {
+      const validationError = this.pipes.pipeline.run(body);
+      if (validationError) {
+        const err = {
+          status: validationError.code,
+          body: validationError.message,
+        };
+        return err;
+      }
+    } catch {
+      return "Error reservando el cupo, intente mas tarde."
     }
   }
 
@@ -86,7 +90,7 @@ module.exports = class ReservationController {
 
   }
 
-  calculateAge(date){
+  calculateAge(date) {
     var ageDifMs = Date.now() - date.getTime();
     var ageDate = new Date(ageDifMs); // miliseconds from epoch
     return Math.abs(ageDate.getUTCFullYear() - 1970);
@@ -94,8 +98,8 @@ module.exports = class ReservationController {
 
   async addReservation(body) {
     const reservationDate = this.parseDate(body.reservationDate);
-    if(!reservationDate){
-      return {body: "Fecha mal provista", status: 400}
+    if (!reservationDate) {
+      return { body: "Fecha mal provista", status: 400 }
     }
     body.reservationDate = new Date(reservationDate);
     //Step 1 - Validators
@@ -113,7 +117,7 @@ module.exports = class ReservationController {
       return { body: "No se encontró la cédula provista", status: 400 };
     }
     const age = this.calculateAge(new Date(person.DateOfBirth))
-    if(age < 16 || age > 106){
+    if (age < 16 || age > 106) {
       return { body: "Debes tener una edad entre 16 y 106 años", status: 400 };
     }
     //Step 3 (Redis) - Aplicar todos los criterios de asignacion para obtener array con ids de criterios aplicables
@@ -162,8 +166,8 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data)=> data).catch((e)=> console.log(e)) || "[]")
-      for (let i =0; i<arr.length;i++) {
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      for (let i = 0; i < arr.length; i++) {
         await axios.post(arr[i].url, object)
           .then((data) => data)
           .catch((e) => console.log("Error al enviar request a API SMS"))
@@ -183,8 +187,8 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data)=> data).catch((e)=> console.log(e)) || "[]")
-      for (let i =0; i<arr.length;i++) {
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      for (let i = 0; i < arr.length; i++) {
         await axios.post(arr[i].url, object)
           .then((data) => data)
           .catch((e) => console.log("Error al enviar request a API SMS"))
