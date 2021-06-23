@@ -22,19 +22,22 @@ module.exports = class VacQueryApi {
       const res = await queryDataAccess.vaccinesByStateAndTurn(
         ctx.request.body.params
       );
-      ctx.response.body = res;
+      ctx.response.body = res.body;
+      ctx.response.status = res.status;
     });
 
     router.get("/query/vaccinesbystatezone", async (ctx, next) => {
       const res = await queryDataAccess.vaccinesByStateAndZone(
         ctx.request.body.params
       );
-      ctx.response.body = res;
+      ctx.response.body = res.body;
+      ctx.response.status = res.status;
     });
 
     router.get("/query/pendingreservationsdepartment", async (ctx, next) => {
       const res = await queryDataAccess.pendingReservationsByDepartment();
-      ctx.response.body = res;
+      ctx.response.body = res.body;
+      ctx.response.status = res.status;
     });
     //Admin Internal Queries
     router.get(
@@ -51,9 +54,9 @@ module.exports = class VacQueryApi {
             ctx.response.status = 401;
             return;
           }
-          const res =
-            await queryDataAccess.pendingReservationsByDepartmentAndZone();
-          ctx.response.body = res;
+          const res = await queryDataAccess.pendingReservationsByDepartmentAndZone();
+          ctx.response.body = res.body;
+          ctx.response.status = res.status;
         } else {
           ctx.response.body = "Unauthorized";
           ctx.response.status = 401;
