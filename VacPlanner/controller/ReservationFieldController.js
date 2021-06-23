@@ -26,4 +26,17 @@ module.exports = class ReservationFieldController {
       response: `Agregado Correctamente la validacion para el campo ${ctx.request.body.fieldName}`,
     };
   }
-};
+
+  async delete(ctx) {
+    const path = `../ReservationService/pipeline/filters/${ctx.request.params.fieldname}.js`;
+    try {
+      fs.unlinkSync(path)
+      ctx.response.body = "Borrado satisfactoriamente"
+      ctx.response.status = 200
+    } catch (err) {
+      console.error(err)
+      ctx.response.body = "Ocurrio un error"
+      ctx.response.status = 400
+    }
+  };
+}

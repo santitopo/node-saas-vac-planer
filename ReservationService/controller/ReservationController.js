@@ -4,19 +4,26 @@ const AssignmentCriterias = require("../services/assignmentCriterias");
 const MQReservations = require("../communication/mqReservations");
 const uniqid = require("uniqid");
 var moment = require('moment');
+const NonAssignedReservationsQueue = require('bull')
+const redis = require("redis");
+const bluebird = require("bluebird")
 
 module.exports = class ReservationController {
   constructor(countryDataAccess) {
     this.pipes = new Pipes();
     this.assignmentCriterias = new AssignmentCriterias();
     this.mq = new MQReservations();
+    this.mqNotAssignedRes = new NonAssignedReservationsQueue("ReservationQueryMQ")
     this.countryDataAccess = countryDataAccess;
+    bluebird.promisifyAll(redis);
+    this.client = redis.createClient();
   }
 
   async fetchPerson(personId) {
+    let url = await this.client.getAsync("DniCenter")
     try {
       const response = await axios.get(
-        "http://localhost:5006/people/" + personId
+        `${url}` + personId
       );
       return response.data;
     } catch (error) {
@@ -45,8 +52,8 @@ module.exports = class ReservationController {
         vaccinationPeriodId: slot ? slot.vaccinationPeriodId : null,
         date: requestBody.reservationDate,
         turn: slot ? slot.turn : requestBody.turn,
-        state_code: slot?(slot.state_code?slot.state_code: requestBody.stateCode ): requestBody.stateCode,
-        zone_id: slot? (slot.zone_id? slot.zone_id:requestBody.zoneCode): requestBody.zoneCode
+        state_code: slot ? (slot.state_code ? slot.state_code : requestBody.stateCode) : requestBody.stateCode,
+        zone_id: slot ? (slot.zone_id ? slot.zone_id : requestBody.zoneCode) : requestBody.zoneCode
       };
       await this.mq.add(mq_reservation, { removeOnComplete: true });
     } catch {
@@ -65,18 +72,18 @@ module.exports = class ReservationController {
     return resultArray.filter((e) => e != -1);
   }
 
-  parseDate(reservationDate){
-      const newDate = moment(reservationDate);
-      
-      if(newDate.isValid()){
-        const year  = newDate.year();
-        const month = (newDate.month()+1).toString().length == 1 ? "0" + (newDate.month()+1) : (newDate.month()+1)
-        const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
-        
-        const parsedDate = year + "-" + month + "-" + day;
-        return parsedDate;
-      }
-      
+  parseDate(reservationDate) {
+    const newDate = moment(reservationDate);
+
+    if (newDate.isValid()) {
+      const year = newDate.year();
+      const month = (newDate.month() + 1).toString().length == 1 ? "0" + (newDate.month() + 1) : (newDate.month() + 1)
+      const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
+
+      const parsedDate = year + "-" + month + "-" + day;
+      return parsedDate;
+    }
+
   }
 
   calculateAge(date){
@@ -115,8 +122,8 @@ module.exports = class ReservationController {
     const validCriterias = this.getValidCriterias(updatedCriterias, person);
     //Step 4 Check for reservations with same id
     const existsReservaion = await this.countryDataAccess.checkDniInReservations(body.id);
-    if(existsReservaion.length > 0){
-      return {body: `Ya existe una reserva para la cedula ${body.id}`, status: 400}
+    if (existsReservaion.length > 0) {
+      return { body: `Ya existe una reserva para la cedula ${body.id}`, status: 400 }
     }
     //Step 5 (SQL) - Update de cupo libre. Deberia devolver el slot
     const slotData = await this.countryDataAccess.updateSlot({
@@ -155,7 +162,14 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data)=> data).catch((e)=> console.log(e)) || "[]")
+      for (let i =0; i<arr.length;i++) {
+        await axios.post(arr[i].url, object)
+          .then((data) => data)
+          .catch((e) => console.log("Error al enviar request a API SMS"))
+      };
+      //let aux = await axios.post("http://localhost:5007/sms/", object).then((data)=> data).catch((e)=>console.log(e))
+
       return {
         body: object,
         status: 200,
@@ -169,7 +183,15 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data)=> data).catch((e)=> console.log(e)) || "[]")
+      for (let i =0; i<arr.length;i++) {
+        await axios.post(arr[i].url, object)
+          .then((data) => data)
+          .catch((e) => console.log("Error al enviar request a API SMS"))
+      };
+      //axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
+      await this.mqNotAssignedRes.add({ state_code: body.stateCode, zone_code: body.zoneCode, assigned: false }, { removeOnComplete: true })
+      console.log("added to mq notAssignedRes")
       return {
         body: object,
         status: 200,
@@ -177,5 +199,5 @@ module.exports = class ReservationController {
     }
   }
 
-  init() {}
+  init() { }
 };
