@@ -1,109 +1,105 @@
 const SlotController = require("./SlotController");
-const moment = require("moment");
-const axios = require("axios");
+const moment = require('moment');
+const axios = require('axios')
+const NonAssignedReservationsQueue = require('bull')
+const redis = require("redis");
+const bluebird = require("bluebird")
 
 module.exports = class VaccinationPeriodController {
-  constructor(countryDataAcces, slotController) {
-    this.countryDataAcces = countryDataAcces;
-    this.slotController = slotController;
-  }
+    constructor(countryDataAcces, slotController) {
+        this.countryDataAcces = countryDataAcces;
+        this.slotController = slotController;
+        this.mqNotAssignedRes = new NonAssignedReservationsQueue("ReservationQueryMQ")
+        bluebird.promisifyAll(redis);
+        this.client = redis.createClient();
+    }
 
   template = (predicate) => {
     return `return (
                   ${predicate}
                 )`;
-  };
+    };
 
-  async fetchPerson(personId) {
-    try {
-      const response = await axios.get(
-        "http://localhost:5006/people/" + personId
-      );
-      return response.data;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  parseDate(reservationDate) {
-    const newDate = moment(reservationDate);
-
-    if (newDate.isValid()) {
-      const year = newDate.year();
-      const month =
-        (newDate.month() + 1).toString().length == 1
-          ? "0" + (newDate.month() + 1)
-          : newDate.month() + 1;
-      const day =
-        newDate.date().toString().length == 1
-          ? "0" + newDate.date()
-          : newDate.date();
-
-      const parsedDate = year + "-" + month + "-" + day;
-      return parsedDate;
-    }
-  }
-
-  async realocateReservations(date, turn, vp, amountToAdd) {
-    let amountToReturn = amountToAdd;
-    let id = vp.vac_center_id;
-    let vc = await this.countryDataAcces.getAVacCenter(id);
-    let zone_id = vc.zone_id;
-    let state_code = await this.countryDataAcces.getAZone(zone_id);
-    state_code = state_code[0].dataValues.state_code;
-    let parseDate = this.parseDate(date);
-    let today = this.parseDate(new Date()) + " 23:59:59";
-    let listReservations = await this.countryDataAcces.getReservations(
-      zone_id,
-      state_code,
-      `${parseDate} 00:00:00`,
-      `${parseDate} 23:59:59`,
-      turn,
-      today
-    );
-    listReservations = listReservations.rows;
-    let criteria = JSON.parse(
-      await this.countryDataAcces.getACriteria(vp.assignment_criteria_id)
-    )[0];
-    const fun = new Function("person", this.template(criteria.function));
-    console.log(listReservations.length);
-    for (const element of listReservations) {
-      if (amountToReturn > 0) {
-        var person = await this.fetchPerson(Number(element.dni));
-        if (person) {
-          if (fun(person)) {
-            let reservation = {
-              reservation_code: element.reservation_code,
-              date: parseDate,
-              assigned: true,
-              vaccination_period_id: vp.id,
-              turn: turn,
-              state_code: state_code,
-              zone_id: zone_id,
-            };
-            this.countryDataAcces.updateAReservation(reservation);
-            let object = {
-              reservationCode: element.reservation_code,
-              state: state_code,
-              zone: zone_id,
-              vacCenterCode: vp.vacCenterCode,
-              vaccinationDate: parseDate,
-              turn: turn,
-            };
-            await axios
-              .post("http://localhost:5007/sms/", object)
-              .then()
-              .catch((e) => console.log(e));
-            amountToReturn--;
-          }
+    async fetchPerson(personId) {
+        let url = await this.client.getAsync("DniCenter")
+        try {
+            const response = await axios.get(
+                `${url}` + personId
+            );
+            return response.data;
+        } catch (error) {
+            console.log("Error al enviar request a API registro civil")
+            return null;
         }
-      } else {
-        return amountToReturn;
-      }
     }
-    console.log("saliendo", amountToReturn);
-    return amountToReturn;
-  }
+
+    parseDate(reservationDate) {
+        const newDate = moment(reservationDate);
+
+        if (newDate.isValid()) {
+            const year = newDate.year();
+            const month = (newDate.month() + 1).toString().length == 1 ? "0" + (newDate.month() + 1) : (newDate.month() + 1)
+            const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
+
+            const parsedDate = year + "-" + month + "-" + day;
+            return parsedDate;
+        }
+    }
+
+    async realocateReservations(date, turn, vp, amountToAdd) {
+        let amountToReturn = amountToAdd;
+        let id = vp.vac_center_id;
+        let vc = await this.countryDataAcces.getAVacCenter(id)
+        let zone_id = vc.zone_id
+        let state_code = await this.countryDataAcces.getAZone(zone_id)
+        state_code = state_code[0].dataValues.state_code
+        let parseDate = this.parseDate(date)
+        let today = this.parseDate(new Date()) + ' 23:59:59'
+        let listReservations = await this.countryDataAcces.getReservations(zone_id, state_code, `${parseDate} 00:00:00`, `${parseDate} 23:59:59`, turn, today)
+        listReservations = listReservations.rows
+        let criteria = JSON.parse(await this.countryDataAcces.getACriteria(vp.assignment_criteria_id))[0]
+        const fun = new Function("person", this.template(criteria.function))
+        console.log(listReservations.length)
+        for (const element of listReservations) {
+            if (amountToReturn > 0) {
+                var person = await this.fetchPerson(Number(element.dni));
+                if (person) {
+                    if (fun(person)) {
+                        let reservation = {
+                            reservation_code: element.reservation_code,
+                            date: parseDate,
+                            assigned: true,
+                            vaccination_period_id: vp.id,
+                            turn: turn,
+                            state_code: state_code,
+                            zone_id: zone_id
+                        }
+                        this.countryDataAcces.updateAReservation(reservation)
+                        let object = {
+                            dni: person.DocumentId,
+                            reservationCode: element.reservation_code,
+                            state: state_code,
+                            zone: zone_id,
+                            vacCenterCode: vp.vacCenterCode,
+                            vaccinationDate: parseDate,
+                            turn: turn
+                        }
+                        let arr = JSON.parse(await this.client.getAsync("SMSService") || "[]")
+                        for (let i =0; i<arr.length;i++) {
+                            await axios.post(arr[i].url, object)
+                              .then((data) => data)
+                              .catch((e) => console.log("Error al enviar request a API SMS"))
+                          };
+                        await this.mqNotAssignedRes.add({ state_code: object.state, zone_code: object.zone, assigned: true }, { removeOnComplete: true })
+                        amountToReturn--
+                    }
+                }
+            } else {
+                return amountToReturn
+            }
+        };
+        return amountToReturn
+  };
 
   async addVaccinationPeriod(body) {
     let vp = JSON.parse(
