@@ -3,6 +3,8 @@ const config = require("../../config.json");
 const { Client } = require("pg");
 const { Sequelize, Op } = require("sequelize");
 const crypto = require("crypto");
+const redis = require("redis");
+
 
 const permissionsQuery = `
 select p.name from sys_user u, user_permission up, permission p
@@ -12,6 +14,7 @@ AND up.permission_id = p.id`;
 module.exports = class CountryDataAccess {
   constructor() {
     this.initialize();
+    this.client = redis.createClient();
   }
 
   async createTables() {
@@ -394,11 +397,12 @@ module.exports = class CountryDataAccess {
       zone_id: 1,
       vaccination_period_id: 1,
     });
+    this.client.set("DniCenter", "http://localhost:5006/people/", redis.print);
+    this.client.set("SMSService", '[{"id":"1", "url":"http://localhost:5007/sms/"}]', redis.print)
   }
 
   //POST
   async addUserPermission(userId, permissionId) {
-    console.log("llegue");
     return this.UserPermission.create({
       permission_id: permissionId,
       user_id: userId,
@@ -526,7 +530,7 @@ module.exports = class CountryDataAccess {
         zone_id: reservation.zone_id,
         vaccination_period_id: reservation.vaccinationPeriodId
       });
-    }else{
+    } else {
       return await this.Reservation.create({
         dni: reservation.dni,
         phone: reservation.phone,
@@ -614,7 +618,6 @@ module.exports = class CountryDataAccess {
       },
     });
     let json = JSON.stringify(vaccinationPeriods, null, 2);
-    console.log(json)
     return json
   }
   async getASlot(body) {
@@ -767,6 +770,53 @@ module.exports = class CountryDataAccess {
     });
     return reservation;
   }
+
+  //DNI
+  async addDniCenter(body) {
+    this.client.set("DniCenter", body.url, redis.print);
+  }
+  //SMS
+  async addSMSService(body) {
+    if (body.id && body.url) {
+      let sms = {
+        id: body.id,
+        url: body.url
+      }
+      let arr = (await this.client.getAsync("SMSService") || "[]")
+      arr = JSON.parse(arr)
+      if (arr) {
+        let aux = arr.filter(item => item.id == body.id)
+        if (aux.length > 0) {
+          return "No se pudo agregar esta url, ya existe una url con esa id"
+        }
+      }
+      arr.push(sms)
+      arr = JSON.stringify(arr)
+      await this.client.setAsync("SMSService", arr)
+      return "Agregado satisfactoriamente"
+    } else {
+      return "No se pudo agregar esta url, recuerde debe enviar los campos id y url"
+    }
+  }
+  async deleteSMSService(body) {
+    if (body.id) {
+      let arr = (await this.client.getAsync("SMSService") || "[]")
+      arr = JSON.parse(arr)
+      if (arr) {
+        let aux = arr.filter(item => item.id == body.id)
+        if(aux.length==0){
+          return "No existe un objeto con el id provisto"
+        }
+        arr = arr.filter(item => item.id != body.id)
+      }
+      arr = JSON.stringify(arr)
+      await this.client.setAsync("SMSService", arr)
+      return "Borrado satisfactoriamente"
+    } else {
+      return "No se pudo agregar esta url, recuerde debe enviar los campos id y url"
+    }
+  }
+
 
   async initialize() {
     // create db if it doesn't already exist

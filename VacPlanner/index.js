@@ -8,7 +8,7 @@ const CheckReservationApi = require("./apis/CheckReservationApi");
 
 const countryDataAccess = new CountryDataAccess();
 const queryDataAccess = new QueryDataAccess();
-const confirmReservationService = new ConfirmReservationService();
+const confirmReservationService = new ConfirmReservationService(countryDataAccess);
 const configApi = new ConfigApi(countryDataAccess);
 const authenticationApi = new AuthenticationApi(countryDataAccess);
 const vacQueryApi = new VacQueryApi(queryDataAccess);

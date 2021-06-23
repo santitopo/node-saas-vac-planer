@@ -1,11 +1,17 @@
 const SlotController = require("./SlotController");
 const moment = require('moment');
 const axios = require('axios')
+const NonAssignedReservationsQueue = require('bull')
+const redis = require("redis");
+const bluebird = require("bluebird")
 
 module.exports = class VaccinationPeriodController {
     constructor(countryDataAcces, slotController) {
         this.countryDataAcces = countryDataAcces;
         this.slotController = slotController;
+        this.mqNotAssignedRes = new NonAssignedReservationsQueue("ReservationQueryMQ")
+        bluebird.promisifyAll(redis);
+        this.client = redis.createClient();
     }
 
     template = (predicate) => {
@@ -15,12 +21,14 @@ module.exports = class VaccinationPeriodController {
     };
 
     async fetchPerson(personId) {
+        let url = await this.client.getAsync("DniCenter")
         try {
             const response = await axios.get(
-                "http://localhost:5006/people/" + personId
+                `${url}` + personId
             );
             return response.data;
         } catch (error) {
+            console.log("Error al enviar request a API registro civil")
             return null;
         }
     }
@@ -68,6 +76,7 @@ module.exports = class VaccinationPeriodController {
                         }
                         this.countryDataAcces.updateAReservation(reservation)
                         let object = {
+                            dni: person.DocumentId,
                             reservationCode: element.reservation_code,
                             state: state_code,
                             zone: zone_id,
@@ -75,7 +84,13 @@ module.exports = class VaccinationPeriodController {
                             vaccinationDate: parseDate,
                             turn: turn
                         }
-                        await axios.post("http://localhost:5007/sms/", object).then().catch((e) => console.log(e))
+                        let arr = JSON.parse(await this.client.getAsync("SMSService") || "[]")
+                        for (let i =0; i<arr.length;i++) {
+                            await axios.post(arr[i].url, object)
+                              .then((data) => data)
+                              .catch((e) => console.log("Error al enviar request a API SMS"))
+                          };
+                        await this.mqNotAssignedRes.add({ state_code: object.state, zone_code: object.zone, assigned: true }, { removeOnComplete: true })
                         amountToReturn--
                     }
                 }
@@ -83,7 +98,6 @@ module.exports = class VaccinationPeriodController {
                 return amountToReturn
             }
         };
-        console.log("saliendo", amountToReturn)
         return amountToReturn
     }
 
@@ -192,6 +206,8 @@ module.exports = class VaccinationPeriodController {
                     }
                     i % 2 ? startDate.setDate(startDate.getDate() + 1) : startDate
                 }
+            } else {
+                return false
             }
         }
         return true
