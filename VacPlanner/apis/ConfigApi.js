@@ -39,7 +39,6 @@ module.exports = class ConfigApi {
       slotController
     );
 
-    app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));
     app.use(bodyParser());
     app.use(logger());
     app.use(jwt({ secret: publicKey, algorithms: ["RS256"] }));

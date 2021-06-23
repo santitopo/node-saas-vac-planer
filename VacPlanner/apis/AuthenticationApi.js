@@ -55,7 +55,6 @@ module.exports = class AuthenticationApi {
       } else {
         ctx.response.body = "Unauthorized";
         ctx.response.status = 401;
-        return;
       }
     });
     app.use(router.routes());

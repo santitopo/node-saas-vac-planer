@@ -33,7 +33,7 @@ module.exports = class QueryDataAccess {
     return vaccines;
   }
 
-  async pendingReservaionsByDepartment() {
+  async pendingReservationsByDepartment() {
     const pendingReservation = await this.PendingReservations.findAll({
       attributes: [
         "state_code",
@@ -44,7 +44,7 @@ module.exports = class QueryDataAccess {
     return pendingReservation;
   }
 
-  async pendingReservaionsByDepartmentAndZone() {
+  async pendingReservationsByDepartmentAndZone() {
     const pendingReservation = await this.PendingReservations.findAll({
       attributes: [
         "state_code",

@@ -16,7 +16,6 @@ module.exports = class VacQueryProcessor {
         res.state_code,
         res.zone_code,
         res.age,
-        res.turn,
         res.date
       );
       await this.queryDataAccess.updateVaccinesByStateAndTurn(
