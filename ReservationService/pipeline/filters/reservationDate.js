@@ -1,11 +1,8 @@
 reservationDate = (input, next) => {
-  console.log(new Date());
-  console.log(input.reservationDate)
-        if ((input.reservationDate) && input.reservationDate.getFullYear() >= new Date().getFullYear() && input.reservationDate.getDate() >= new Date().getDate()) {
-          return next(null, input);
-        } else {
-          return next("Se espera un campo reservationDate que sea mayor a la fecha actual", null);
-        }
-      };
-      module.exports = reservationDate;
-      
+  if ((input.reservationDate) && input.reservationDate.getFullYear() >= new Date().getFullYear() && input.reservationDate.getDate() >= new Date().getDate()) {
+    return next(null, input);
+  } else {
+    return next("Se espera un campo reservationDate que sea mayor a la fecha actual", null);
+  }
+};
+module.exports = reservationDate;

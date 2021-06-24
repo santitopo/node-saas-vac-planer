@@ -23,16 +23,6 @@ module.exports = class AssignmentCriteriaController {
     });
   };
 
-  async setTestData() {
-    await this.setCriterias([]);
-    const fakeFunction =
-      "new Date().getFullYear() - new Date(person.DateOfBirth).getFullYear() > 20";
-    const id = await this.countryDataAccess.addCriteria(fakeFunction);
-    const ctx = { request: { body: { function: fakeFunction } } };
-    await this.addRedis(ctx, id);
-    await this.countryDataAccess.createTestData();
-  }
-
   clientSet = (arr) => {
     return new Promise((fullfill, reject) => {
       this.client.set(
@@ -76,12 +66,11 @@ module.exports = class AssignmentCriteriaController {
       await this.setCriterias(allCriterias);
       return "success";
     } catch (e) {
-      console.log(e);
+      console.log("Error agreagando criterio a redis");
       return null;
     }
   }
   async deleteRedis(id){
-    try {
       //Ir a buscar a redis
       var allCriterias = (await this.getCriterias()) || [];
       //Agregar a redis
@@ -92,11 +81,8 @@ module.exports = class AssignmentCriteriaController {
         }
         allCriterias = allCriterias.filter(item => item.index != id)
         await this.setCriterias(allCriterias);
+        console.log(`Borrado correctamente el criterio ${id}`)
         return "Borrado satisfactoriamente"
       }
-    } catch (e) {
-      console.log(e);
-      return null;
-    }
   }
 };
