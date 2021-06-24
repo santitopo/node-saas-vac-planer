@@ -1,5 +1,6 @@
 module.exports = class SlotController {
-    constructor(countryDataAcces) {
+    constructor(countryDataAcces, logger) {
+        this.logger = logger;
       this.countryDataAcces = countryDataAcces;
     }
 

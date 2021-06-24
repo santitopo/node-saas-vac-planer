@@ -5,14 +5,15 @@ const bodyParser = require("koa-bodyparser");
 const AuthenticationController = require("../controller/AuthenticationController");
 
 module.exports = class VacQueryApi {
-  constructor(queryDataAccess) {
+  constructor(queryDataAccess, logger) {
+    this.logger = logger;
     this.init(queryDataAccess);
   }
 
   init(queryDataAccess) {
     const app = new Koa();
     const router = new Router();
-    const authController = new AuthenticationController();
+    const authController = new AuthenticationController(this.logger);
 
     app.use(bodyParser());
     app.use(logger());

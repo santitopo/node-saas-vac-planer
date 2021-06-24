@@ -16,7 +16,8 @@ const SlotController = require("../controller/SlotController");
 const AuthenticationController = require("../controller/AuthenticationController");
 
 module.exports = class ConfigApi {
-  constructor(countryDataAccess) {
+  constructor(countryDataAccess, logger) {
+    this.logger = logger;
     this.countryDataAccess = countryDataAccess;
     this.init();
   }
@@ -24,19 +25,20 @@ module.exports = class ConfigApi {
   init() {
     const app = new Koa();
     const router = new Router();
-    const authController = new AuthenticationController();
-    const reservationField = new ReservationFieldController();
+    const authController = new AuthenticationController(this.logger);
+    const reservationField = new ReservationFieldController(this.logger);
     const assignmentCriteria = new AssignmentCriteriaController(
-      this.countryDataAccess
+      this.countryDataAccess, this.logger
     );
-    const stateController = new StateController(this.countryDataAccess);
-    const zoneController = new ZoneController(this.countryDataAccess);
-    const vacCenterController = new VacCenterController(this.countryDataAccess);
-    const vaccineController = new VaccineController(this.countryDataAccess);
-    const slotController = new SlotController(this.countryDataAccess);
+    const stateController = new StateController(this.countryDataAccess, this.logger);
+    const zoneController = new ZoneController(this.countryDataAccess, this.logger);
+    const vacCenterController = new VacCenterController(this.countryDataAccess, this.logger);
+    const vaccineController = new VaccineController(this.countryDataAccess, this.logger);
+    const slotController = new SlotController(this.countryDataAccess, this.logger);
     const vaccinationPeriodController = new VaccinationPeriodController(
       this.countryDataAccess,
-      slotController
+      slotController,
+      this.logger
     );
 
     app.use(bodyParser());
@@ -112,7 +114,7 @@ module.exports = class ConfigApi {
       return await assignmentCriteria.deleteRedis(ctx.params.id)
         .then((data) => { ctx.response.status = 200, ctx.response.body = data })
         .catch(() => {
-          console.log("Error eliminando el criterio de asignacion")
+          this.logger.logError("Error eliminando el criterio de asignacion")
           { ctx.response.status = 400, ctx.response.body = "Error eliminando el criterio de asignacion" }
         })
     });
@@ -150,11 +152,11 @@ module.exports = class ConfigApi {
       await stateController.addStates(ctx.request.body).then((data) => {
         ctx.response.body = data,
           ctx.response.status = 200
-          console.log(`Creado correctamente el estado ${ctx.request.body.name}`)
+          this.logger.logInfo(`Creado correctamente el estado ${ctx.request.body.name}`)
       }).catch(() => {
           ctx.response.body = "Ocurrio un error, recuerda que state code debe ser unico",
           ctx.request.status = 400
-          console.log(`Error creando el estado ${ctx.request.body.name}`)
+          this.logger.logError(`Error creando el estado ${ctx.request.body.name}`)
       });
     });
     router.post("/zones", async (ctx, next) => {
@@ -172,11 +174,11 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Creado correctamente la zona ${ctx.request.body.name}`)
+            this.logger.logInfo(`Creado correctamente la zona ${ctx.request.body.name}`)
         }).catch((e) => {
           ctx.response.body = "Ocurrio un error, recuerda que un state con el codgio provisto debe existir";
           ctx.response.status = 400;
-          console.log(`Error creando la zona ${ctx.request.body.name}`)
+          this.logger.logError(`Error creando la zona ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccenters", async (ctx, next) => {
@@ -194,11 +196,11 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Creado correctamente el vacunatorio ${ctx.request.body.name}`)
+            this.logger.logInfo(`Creado correctamente el vacunatorio ${ctx.request.body.name}`)
         }).catch((e) => {
           ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
             ctx.response.status = 400
-            console.log(`Error creando el vacunatorio ${ctx.request.body.name}`)
+            this.logger.logError(`Error creando el vacunatorio ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccines", async (ctx, next) => {
@@ -216,12 +218,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Creado correctamente la vacuna ${ctx.request.body.name}`)
+            this.logger.logInfo(`Creado correctamente la vacuna ${ctx.request.body.name}`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
-            console.log(`Error creando la vacuna ${ctx.request.body.name}`)
+            this.logger.logError(`Error creando la vacuna ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccinationperiods", async (ctx, next) => {
@@ -239,12 +241,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Creado correctamente el periodo de vacunacion para vacunatorio ${ctx.request.body.name}`)
+            this.logger.logInfo(`Creado correctamente el periodo de vacunacion para vacunatorio ${ctx.request.body.name}`)
         })
         .catch((e) => {
           ctx.response.body = 'Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir, tambien lo deben hacer assignment criteria, vaccine, zone y state code',
             ctx.response.status = 400
-            console.log(`Error creando el periodo de vacunacion para vacunatorio ${ctx.request.body.vac_center_id}`)
+            this.logger.logError(`Error creando el periodo de vacunacion para vacunatorio ${ctx.request.body.vac_center_id}`)
         });
     });
 
@@ -266,12 +268,12 @@ module.exports = class ConfigApi {
         } else {
           ctx.response.body = "Borrado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Estado ${ctx.params.code} borrado correctamente`)
+            this.logger.logInfo(`Estado ${ctx.params.code} borrado correctamente`)
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error borrando el estado",
           ctx.response.status = 400
-          console.log(`Error borrando estado ${ctx.params.code}`)
+          this.logger.logError(`Error borrando estado ${ctx.params.code}`)
       });
     });
     router.delete("/zones/:id", async (ctx, next) => {
@@ -291,13 +293,13 @@ module.exports = class ConfigApi {
         } else {
           ctx.response.body = "Borrado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Zona ${ctx.params.id} borrada correctamente`)
+            this.logger.logInfo(`Zona ${ctx.params.id} borrada correctamente`)
         }
 
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error borrando la zona",
           ctx.response.status = 400
-          console.log(`Error borrando zona ${ctx.params.id}`)
+          this.logger.logError(`Error borrando zona ${ctx.params.id}`)
       });
     });
     router.delete("/vaccenters/:id", async (ctx, next) => {
@@ -317,12 +319,12 @@ module.exports = class ConfigApi {
         } else {
           ctx.response.body = "Borrado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Vacunatorio ${ctx.params.id} borrado correctamente`)
+            this.logger.logInfo(`Vacunatorio ${ctx.params.id} borrado correctamente`)
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error borrando el vacunatorio",
           ctx.response.status = 400
-          console.log(`Error borrando vacunatorio ${ctx.params.id}`)
+          this.logger.logError(`Error borrando vacunatorio ${ctx.params.id}`)
       });
     });
     router.delete("/vaccines/:id", async (ctx, next) => {
@@ -342,12 +344,12 @@ module.exports = class ConfigApi {
         } else {
           ctx.response.body = "Borrado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Vacuna ${ctx.params.id} borrada correctamente`)
+            this.logger.logInfo(`Vacuna ${ctx.params.id} borrada correctamente`)
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error borrando la vacuna",
           ctx.response.status = 400
-          console.log(`Error borrando vacuna ${ctx.params.id}`)
+          this.logger.logError(`Error borrando vacuna ${ctx.params.id}`)
       });
     });
     router.delete("/vaccinationperiods/:id", async (ctx, next) => {
@@ -367,12 +369,12 @@ module.exports = class ConfigApi {
         } else {
           ctx.response.body = "Borrado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Periodo de vacunacion borrado correctamente`)
+            this.logger.logInfo(`Periodo de vacunacion borrado correctamente`)
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error borrando periodo de vacunacion`)
+          this.logger.logError(`Error borrando periodo de vacunacion`)
       });
     });
 
@@ -391,7 +393,7 @@ module.exports = class ConfigApi {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Estado ${ctx.params.code} modificado correctamente`)
+            this.logger.logInfo(`Estado ${ctx.params.code} modificado correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
             ctx.response.status = 400
@@ -399,7 +401,7 @@ module.exports = class ConfigApi {
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error modificando estado ${ctx.params.code}`)
+          this.logger.logError(`Error modificando estado ${ctx.params.code}`)
       });
     });
     router.put("/zones/:id", async (ctx, next) => {
@@ -416,7 +418,7 @@ module.exports = class ConfigApi {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Zona ${ctx.params.id} modificada correctamente`)
+            this.logger.logInfo(`Zona ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que una zone con el codigo provisto debe existir",
             ctx.response.status = 400
@@ -424,7 +426,7 @@ module.exports = class ConfigApi {
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error modificando zona ${ctx.params.id}`)
+          this.logger.logError(`Error modificando zona ${ctx.params.id}`)
       });
     });
     router.put("/vaccenters/:id", async (ctx, next) => {
@@ -441,7 +443,7 @@ module.exports = class ConfigApi {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Vacunatorio ${ctx.params.id} modificada correctamente`)
+            this.logger.logInfo(`Vacunatorio ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un vac center con el codigo provisto debe existir",
             ctx.response.status = 400
@@ -449,7 +451,7 @@ module.exports = class ConfigApi {
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error modificando vacunatorio ${ctx.params.id}`)
+          this.logger.logError(`Error modificando vacunatorio ${ctx.params.id}`)
       });
     });
     router.put("/vaccines/:id", async (ctx, next) => {
@@ -466,7 +468,7 @@ module.exports = class ConfigApi {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Vacuna ${ctx.params.id} modificada correctamente`)
+            this.logger.logInfo(`Vacuna ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que una vaccine con el codigo provisto debe existir",
             ctx.response.status = 400
@@ -474,7 +476,7 @@ module.exports = class ConfigApi {
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error modificando vacuna ${ctx.params.id}`)
+          this.logger.logError(`Error modificando vacuna ${ctx.params.id}`)
       });
     });
     router.put("/vaccinationperiods/:id", async (ctx, next) => {
@@ -491,7 +493,7 @@ module.exports = class ConfigApi {
         if (data) {
           ctx.response.body = "Actualizado satisfactoriamente",
             ctx.response.status = 200
-            console.log(`Periodo de vacunacion modificado correctamente`)
+            this.logger.logInfo(`Periodo de vacunacion modificado correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
             ctx.response.status = 400
@@ -499,7 +501,7 @@ module.exports = class ConfigApi {
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vaccination period con el codigo provisto debe existir",
           ctx.response.status = 400
-          console.log(`Error modificando periodo de vacunacion`)
+          this.logger.logError(`Error modificando periodo de vacunacion`)
       });
     });
 
@@ -518,12 +520,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Servicio de registro civil ${ctx.request.body.url} agregado correctamente`)
+            this.logger.logInfo(`Servicio de registro civil ${ctx.request.body.url} agregado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
-            console.log(`Error agregando servicio de registro civil ${ctx.request.body.url}`)
+            this.logger.logError(`Error agregando servicio de registro civil ${ctx.request.body.url}`)
         });
     });
 
@@ -543,12 +545,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Servicio mensajeria ${ctx.request.body.url} agregado correctamente`)
+            this.logger.logInfo(`Servicio mensajeria ${ctx.request.body.url} agregado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
-            console.log(`Error agregando servicio de mensajeria ${ctx.request.body.url}`)
+            this.logger.logError(`Error agregando servicio de mensajeria ${ctx.request.body.url}`)
         });
     });
     router.delete("/smsservice", async (ctx, next) => {
@@ -566,12 +568,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
-            console.log(`Servicio mensajeria ${ctx.request.body.url} borrado correctamente`)
+            this.logger.logInfo(`Servicio mensajeria ${ctx.request.body.url} borrado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
-            console.log(`Error borrando servicio de mensajeria ${ctx.request.body.url}`)
+            this.logger.logError(`Error borrando servicio de mensajeria ${ctx.request.body.url}`)
         });
     });
 

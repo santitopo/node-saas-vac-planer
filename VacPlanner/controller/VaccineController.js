@@ -2,7 +2,8 @@ const axios = require("axios");
 const Queue = require("bull");
 const { vaccinationQueryMQ } = require("../../config.json");
 module.exports = class VaccineController {
-  constructor(countryDataAccess) {
+  constructor(countryDataAccess, logger) {
+    this.logger = logger;
     this.countryDataAccess = countryDataAccess;
     this.vacQueryMQ = new Queue(vaccinationQueryMQ);
   }
@@ -24,7 +25,7 @@ module.exports = class VaccineController {
       .add(vaccineMQobject, { removeOnComplete: true })
       .then(() => Promise.resolve())
       .catch((e) => {
-        console.log("Error sending vaccination to MQ");
+        this.logger.logError("Error sending vaccination to MQ");
         return e;
       });
   }
@@ -60,7 +61,7 @@ module.exports = class VaccineController {
       }
       const age = await this.fetchAge(dni);
       if (!age) {
-        console.log("Error in registro civil api");
+        this.logger.logError("Error in registro civil api");
         return {
           body: "Error del sistema. Intentelo nuevamente",
           status: 500,

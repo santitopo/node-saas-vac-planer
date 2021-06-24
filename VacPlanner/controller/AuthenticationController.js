@@ -1,7 +1,8 @@
 const AuthService = require("../services/authService");
 
 module.exports = class AuthenticationController {
-  constructor(countryDataAccess) {
+  constructor(countryDataAccess, logger) {
+    this.logger = logger;
     this.countryDataAccess = countryDataAccess;
     this.authService = new AuthService();
   }

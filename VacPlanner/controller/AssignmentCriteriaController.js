@@ -1,17 +1,18 @@
 const redis = require("redis");
 
 module.exports = class AssignmentCriteriaController {
-  constructor(countryDataAccess) {
+  constructor(countryDataAccess, logger) {
+    this.logger = logger;
     this.countryDataAccess = countryDataAccess;
     this.init();
-    this.client.on("error", () => console.log("abrazo"));
+    this.client.on("error", () => this.logger.logError("Error en redis"));
   }
 
   init = () => {
     try {
       this.client = redis.createClient();
     } catch {
-      console.log("Servidor de Redis no responde..");
+      this.logger.logError("Servidor de Redis no responde..");
     }
   };
   clientGet = () => {
@@ -66,7 +67,7 @@ module.exports = class AssignmentCriteriaController {
       await this.setCriterias(allCriterias);
       return "success";
     } catch (e) {
-      console.log("Error agreagando criterio a redis");
+      this.logger.logError("Error agreagando criterio a redis");
       return null;
     }
   }
@@ -81,7 +82,7 @@ module.exports = class AssignmentCriteriaController {
         }
         allCriterias = allCriterias.filter(item => item.index != id)
         await this.setCriterias(allCriterias);
-        console.log(`Borrado correctamente el criterio ${id}`)
+        this.logger.logInfo(`Borrado correctamente el criterio ${id}`)
         return "Borrado satisfactoriamente"
       }
   }

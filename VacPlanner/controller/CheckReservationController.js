@@ -1,5 +1,6 @@
 module.exports = class CheckReservationController {
-    constructor(countryDataAcces) {
+    constructor(countryDataAcces, logger) {
+        this.logger = logger;
         this.countryDataAcces = countryDataAcces;
     }
 
@@ -12,7 +13,7 @@ module.exports = class CheckReservationController {
             return { body: result, status: 200 };
         }
         catch {
-            console.log(`Error consulta la reserva para la dni ${dni}`);
+            this.logger.logError(`Error consulta la reserva para la dni ${dni}`);
             return { body: "Error en la consulta", status: 500 }
         }
     }
@@ -23,11 +24,11 @@ module.exports = class CheckReservationController {
             if(result === 0){
                 return { body : "No hay reservas para la cedula y codigo provistos", status: 200}
             }
-            console.log(`Se borro la reserva ${reservationCode} correctamente`)
+            this.logger.logInfo(`Se borro la reserva ${reservationCode} correctamente`)
             return { body: "Se borro la reserva correctamente", status: 200 };
         }
         catch {
-            console.log(`Error borrando la reserva para la dni ${dni}`);
+            this.logger.logError(`Error borrando la reserva para la dni ${dni}`);
             return { body: "Error al borrar la reserva", status: 500 }
         }
     }

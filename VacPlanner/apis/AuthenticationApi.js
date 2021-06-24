@@ -7,11 +7,12 @@ const UserController = require("../controller/UserController");
 const AssignmentCriteriaController = require("../controller/AssignmentCriteriaController");
 
 module.exports = class AuthenticationApi {
-  constructor(countryDataAccess) {
-    this.authController = new AuthenticationController(countryDataAccess);
-    this.userController = new UserController(countryDataAccess);
+  constructor(countryDataAccess, logger) {
+    this.logger = logger;
+    this.authController = new AuthenticationController(countryDataAccess, logger);
+    this.userController = new UserController(countryDataAccess, logger);
     this.assignmentCriteria = new AssignmentCriteriaController(
-      countryDataAccess
+      countryDataAccess, logger
     );
     this.init();
   }

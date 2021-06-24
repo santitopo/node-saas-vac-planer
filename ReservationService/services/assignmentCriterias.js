@@ -1,10 +1,11 @@
 const redis = require("redis");
 
 module.exports = class AssignmentCriterias {
-  constructor() {
+  constructor(logger) {
+    this.logger = logger;
     this.client = redis.createClient();
     this.client.on("error", function (err) {
-      console.log("CRITICAL ERROR: LOST CONNECTION TO REDIS ");
+      this.logger.logError("Error, se perdio la conexion con redis");
     });
     this.updatedCriterias = [];
     this.init();
@@ -35,12 +36,11 @@ module.exports = class AssignmentCriterias {
   getCriterias = () => {
     this.clientGet("assignmentCriterias")
       .then((arr) => {
-        console.log("Trayendo ultimos criterios de asignación...");
+        this.logger.logInfo("Trayendo ultimos criterios de asignación...");
         this.loadFunctions(JSON.parse(arr) || []);
       })
-      .catch((err) => {
-        console.log("HOLA");
-        console.log(err);
+      .catch(() => {
+        this.logger.logError("Error trayendo criterios de asignacion");
       });
   };
   init() {
