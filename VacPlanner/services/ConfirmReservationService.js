@@ -26,7 +26,7 @@ module.exports = class ConfirmReservationService {
             var res = await this.countryDataAccess.getAReservation(reservation.dni).then((data) => data).catch((e) => e)
             if (!res) {
                 let reservation = await this.countryDataAccess.addReservation(job.data).then(data => data).catch((e) => e)
-                console.log(reservation.dataValues)
+                console.log(reservation)
             } else {
                 console.log("Ya existe una reserva con esta dni")
             }

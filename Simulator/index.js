@@ -19,7 +19,7 @@ async function reservationRequest(reservation, counter) {
       )
     console.log(res.data.timestampD, counter);
   } catch (error) {
-    console.log(error.response.data)
+    //console.log(error.response.data)
   }
 }
 
