@@ -158,13 +158,24 @@ module.exports = class QueryDataAccess {
     });
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
-      if (res.rows.filter((d) => d.datname === queryDatabase).length < 1) {
-        console.log("Creating Database...");
-        this.connection.query(`CREATE DATABASE ${queryDatabase};`, async () => {
+      if (err) {
+        console.log("Error conectando a la base de datos queryDB")
+      }
+      else {
+        if (res.rows.filter((d) => d.datname === queryDatabase).length < 1) {
+          this.connection.query(`CREATE DATABASE ${queryDatabase};`, async (error, response) => {
+            if(error){
+              console.log("Error creando la base de datos queryDB")
+            }
+            else{
+            console.log("Creando base de datos queryDB");
+            this.createTables();
+            }
+          });
+        } else {
+          console.log("Creando base de datos queryDB");
           this.createTables();
-        });
-      } else {
-        this.createTables();
+        }
       }
     });
   }

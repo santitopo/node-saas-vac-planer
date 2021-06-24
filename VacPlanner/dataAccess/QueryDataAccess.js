@@ -157,7 +157,7 @@ module.exports = class QueryDataAccess {
             }
           });
         } else {
-          console.log("Creando base de datos countryDB");
+          console.log("Creando base de datos queryDB");
           this.createTables();
         }
       }
