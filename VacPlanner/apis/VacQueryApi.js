@@ -19,24 +19,33 @@ module.exports = class VacQueryApi {
 
     //VacQueryTool queries
     router.get("/query/vaccinesbystateturn", async (ctx, next) => {
+      const timestampI = Date.now();
       const res = await queryDataAccess.vaccinesByStateAndTurn(
         ctx.request.body.params
       );
-      ctx.response.body = res.body;
+      const timestampR = Date.now();
+      const timestampD = timestampR - timestampI;
+      ctx.response.body = { response: res.body, timestampI: timestampI, timestampR: timestampR, timestampD: timestampD };
       ctx.response.status = res.status;
     });
 
     router.get("/query/vaccinesbystatezone", async (ctx, next) => {
+      const timestampI = Date.now();
       const res = await queryDataAccess.vaccinesByStateAndZone(
         ctx.request.body.params
       );
-      ctx.response.body = res.body;
+      const timestampR = Date.now();
+      const timestampD = timestampR - timestampI;
+      ctx.response.body = { response: res.body, timestampI: timestampI, timestampR: timestampR, timestampD: timestampD };
       ctx.response.status = res.status;
     });
 
     router.get("/query/pendingreservationsdepartment", async (ctx, next) => {
+      const timestampI = Date.now();
       const res = await queryDataAccess.pendingReservationsByDepartment();
-      ctx.response.body = res.body;
+      const timestampR = Date.now();
+      const timestampD = timestampR - timestampI;
+      ctx.response.body = { response: res.body, timestampI: timestampI, timestampR: timestampR, timestampD: timestampD };
       ctx.response.status = res.status;
     });
     //Admin Internal Queries
