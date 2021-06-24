@@ -28,14 +28,7 @@ module.exports = class AuthenticationApi {
       ctx.response.body = result.body;
       ctx.response.status = result.status;
     });
-    router.post("/testData", async (ctx, next) => {
-      await this.assignmentCriteria.setTestData();
-      ctx.body = {
-        response: "Datos de Prueba agregados",
-      };
-      ctx.status = 200;
-      return;
-    });
+    
     router.post("/user", async (ctx, next) => {
       if (ctx.request.headers["authorization"]) {
         const token = ctx.request.headers["authorization"].split("Bearer ")[1];

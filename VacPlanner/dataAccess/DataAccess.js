@@ -411,7 +411,7 @@ module.exports = class CountryDataAccess {
       zone_id: 1,
       vaccination_period_id: 1,
     });
-    
+
   }
 
   //POST
@@ -464,11 +464,10 @@ module.exports = class CountryDataAccess {
           permissionsQuery.replace(/\n/g, " "),
           [user]
         );
-        console.log("permissions are", permissions.rows);
         return permissions.rows.map((p) => p.name);
       }
-    } catch (e) {
-      console.log("Error in login", e);
+    } catch {
+      console.log(`Error en login para usuario ${user}`);
       return Promise.reject("Error del servidor");
     }
   }
@@ -478,7 +477,10 @@ module.exports = class CountryDataAccess {
       function: JSON.stringify(fun),
     })
       .then((data) => data.getDataValue("id"))
-      .catch((e) => null);
+      .catch((e) => {
+        console.log("Error agregando criterio a base de datos")
+        return null
+      });
   }
 
   async addState(state) {
@@ -819,7 +821,7 @@ module.exports = class CountryDataAccess {
       arr = JSON.parse(arr)
       if (arr) {
         let aux = arr.filter(item => item.id == body.id)
-        if(aux.length==0){
+        if (aux.length == 0) {
           return "No existe un objeto con el id provisto"
         }
         arr = arr.filter(item => item.id != body.id)
@@ -844,13 +846,24 @@ module.exports = class CountryDataAccess {
     });
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
-      if (res.rows.filter((d) => d.datname === database).length < 1) {
-        console.log("Creating Database...");
-        this.connection.query(`CREATE DATABASE ${database};`, async () => {
+      if (err) {
+        console.log("Error conectando a la base de datos countryDB")
+      }
+      else {
+        if (res.rows.filter((d) => d.datname === database).length < 1) {
+          this.connection.query(`CREATE DATABASE ${database};`, async (error, response) => {
+            if(error){
+              console.log("Error creando la base de datos countryDB")
+            }
+            else{
+            console.log("Creando base de datos countryDB");
+            this.createTables();
+            }
+          });
+        } else {
+          console.log("Creando base de datos countryDB");
           this.createTables();
-        });
-      } else {
-        this.createTables();
+        }
       }
     });
   }

@@ -8,7 +8,6 @@ module.exports = class CountryDataAccess {
   }
 
   async createTables() {
-    console.log("Connecting to Database...");
     await this.connectDB();
     const { host, port, user, password, database } = config;
     // connect to db
@@ -291,21 +290,21 @@ module.exports = class CountryDataAccess {
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (err) {
-        console.log("Error creando la base de datos")
+        console.log("Error conectando a la base de datos countryDB")
       }
       else {
         if (res.rows.filter((d) => d.datname === database).length < 1) {
           this.connection.query(`CREATE DATABASE ${database};`, async (error, response) => {
             if(error){
-              console.log("Error creando la base de datos")
+              console.log("Error creando la base de datos countryDB")
             }
             else{
-            console.log("Creando base de datos");
+            console.log("Creando base de datos countryDB");
             this.createTables();
             }
           });
         } else {
-          console.log("Creando base de datos");
+          console.log("Creando base de datos countryDB");
           this.createTables();
         }
       }

@@ -109,9 +109,12 @@ module.exports = class ConfigApi {
         ctx.response.status = 401;
         return;
       }
-       return await assignmentCriteria.deleteRedis(ctx.params.id)
-      .then((data)=> {ctx.response.status = 200, ctx.response.body = data})
-      .catch((e)=> {ctx.response.status = 400, ctx.response.body="Error eliminando el criterio de asignacion"})
+      return await assignmentCriteria.deleteRedis(ctx.params.id)
+        .then((data) => { ctx.response.status = 200, ctx.response.body = data })
+        .catch(() => {
+          console.log("Error eliminando el criterio de asignacion")
+          { ctx.response.status = 400, ctx.response.body = "Error eliminando el criterio de asignacion" }
+        })
     });
     router.post("/vaccine_act", async (ctx, next) => {
       try {
@@ -147,9 +150,11 @@ module.exports = class ConfigApi {
       await stateController.addStates(ctx.request.body).then((data) => {
         ctx.response.body = data,
           ctx.response.status = 200
-      }).catch((e) => {
-        ctx.response.body = "Ocurrio un error, recuerda que state code debe ser unico",
+          console.log(`Creado correctamente el estado ${ctx.request.body.name}`)
+      }).catch(() => {
+          ctx.response.body = "Ocurrio un error, recuerda que state code debe ser unico",
           ctx.request.status = 400
+          console.log(`Error creando el estado ${ctx.request.body.name}`)
       });
     });
     router.post("/zones", async (ctx, next) => {
@@ -167,9 +172,11 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Creado correctamente la zona ${ctx.request.body.name}`)
         }).catch((e) => {
           ctx.response.body = "Ocurrio un error, recuerda que un state con el codgio provisto debe existir";
           ctx.response.status = 400;
+          console.log(`Error creando la zona ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccenters", async (ctx, next) => {
@@ -187,9 +194,11 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Creado correctamente el vacunatorio ${ctx.request.body.name}`)
         }).catch((e) => {
           ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
             ctx.response.status = 400
+            console.log(`Error creando el vacunatorio ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccines", async (ctx, next) => {
@@ -207,10 +216,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Creado correctamente la vacuna ${ctx.request.body.name}`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
+            console.log(`Error creando la vacuna ${ctx.request.body.name}`)
         });
     });
     router.post("/vaccinationperiods", async (ctx, next) => {
@@ -228,10 +239,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Creado correctamente el periodo de vacunacion para vacunatorio ${ctx.request.body.name}`)
         })
         .catch((e) => {
           ctx.response.body = 'Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir, tambien lo deben hacer assignment criteria, vaccine, zone y state code',
             ctx.response.status = 400
+            console.log(`Error creando el periodo de vacunacion para vacunatorio ${ctx.request.body.vac_center_id}`)
         });
     });
 
@@ -247,16 +260,18 @@ module.exports = class ConfigApi {
         return;
       }
       const res = await stateController.deleteAState(ctx.params.code).then((data) => {
-        if(data ==0){
-          ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
-          ctx.response.status = 400
-        }else{
+        if (data == 0) {
+          ctx.response.body = "No existe estado con ese codigo",
+            ctx.response.status = 400
+        } else {
           ctx.response.body = "Borrado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Estado ${ctx.params.code} borrado correctamente`)
         }
       }).catch((e) => {
-        ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
+        ctx.response.body = "Ocurrio un error borrando el estado",
           ctx.response.status = 400
+          console.log(`Error borrando estado ${ctx.params.code}`)
       });
     });
     router.delete("/zones/:id", async (ctx, next) => {
@@ -270,17 +285,19 @@ module.exports = class ConfigApi {
         return;
       }
       await zoneController.deleteAZone(ctx.params.id).then((data) => {
-        if(data ==0){
+        if (data == 0) {
           ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
-          ctx.response.status = 400
-        }else{
+            ctx.response.status = 400
+        } else {
           ctx.response.body = "Borrado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Zona ${ctx.params.id} borrada correctamente`)
         }
-        
+
       }).catch((e) => {
-        ctx.response.body = "Ocurrio un error, recuerda que una zone con el codgio provisto debe existir",
+        ctx.response.body = "Ocurrio un error borrando la zona",
           ctx.response.status = 400
+          console.log(`Error borrando zona ${ctx.params.id}`)
       });
     });
     router.delete("/vaccenters/:id", async (ctx, next) => {
@@ -294,16 +311,18 @@ module.exports = class ConfigApi {
         return;
       }
       await vacCenterController.deleteAVacCenter(ctx.params.id).then((data) => {
-        if(data ==0){
+        if (data == 0) {
           ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
-          ctx.response.status = 400
-        }else{
+            ctx.response.status = 400
+        } else {
           ctx.response.body = "Borrado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Vacunatorio ${ctx.params.id} borrado correctamente`)
         }
       }).catch((e) => {
-        ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
+        ctx.response.body = "Ocurrio un error borrando el vacunatorio",
           ctx.response.status = 400
+          console.log(`Error borrando vacunatorio ${ctx.params.id}`)
       });
     });
     router.delete("/vaccines/:id", async (ctx, next) => {
@@ -317,16 +336,18 @@ module.exports = class ConfigApi {
         return;
       }
       await vaccineController.deleteAVaccine(ctx.params.id).then((data) => {
-        if(data ==0){
+        if (data == 0) {
           ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
-          ctx.response.status = 400
-        }else{
+            ctx.response.status = 400
+        } else {
           ctx.response.body = "Borrado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Vacuna ${ctx.params.id} borrada correctamente`)
         }
       }).catch((e) => {
-        ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
+        ctx.response.body = "Ocurrio un error borrando la vacuna",
           ctx.response.status = 400
+          console.log(`Error borrando vacuna ${ctx.params.id}`)
       });
     });
     router.delete("/vaccinationperiods/:id", async (ctx, next) => {
@@ -340,16 +361,18 @@ module.exports = class ConfigApi {
         return;
       }
       const res = await vaccinationPeriodController.deleteAVaccinationPeriod(ctx.params.id).then((data) => {
-        if(data ==0){
+        if (data == 0) {
           ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
-          ctx.response.status = 400
-        }else{
-        ctx.response.body = "Borrado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 400
+        } else {
+          ctx.response.body = "Borrado satisfactoriamente",
+            ctx.response.status = 200
+            console.log(`Periodo de vacunacion borrado correctamente`)
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vaccination con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error borrando periodo de vacunacion`)
       });
     });
 
@@ -367,14 +390,16 @@ module.exports = class ConfigApi {
       const res = await stateController.updateAState(ctx.params.code, ctx.request.body).then((data) => {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Estado ${ctx.params.code} modificado correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
-          ctx.response.status = 400
+            ctx.response.status = 400
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un state con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error modificando estado ${ctx.params.code}`)
       });
     });
     router.put("/zones/:id", async (ctx, next) => {
@@ -390,14 +415,16 @@ module.exports = class ConfigApi {
       const res = await zoneController.updateAZone(ctx.params.id, ctx.request.body).then((data) => {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Zona ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que una zone con el codigo provisto debe existir",
-          ctx.response.status = 400
+            ctx.response.status = 400
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una zone con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error modificando zona ${ctx.params.id}`)
       });
     });
     router.put("/vaccenters/:id", async (ctx, next) => {
@@ -413,14 +440,16 @@ module.exports = class ConfigApi {
       const res = await vacCenterController.updateAVacCenter(ctx.params.id, ctx.request.body).then((data) => {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Vacunatorio ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un vac center con el codigo provisto debe existir",
-          ctx.response.status = 400
+            ctx.response.status = 400
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vac center con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error modificando vacunatorio ${ctx.params.id}`)
       });
     });
     router.put("/vaccines/:id", async (ctx, next) => {
@@ -436,14 +465,16 @@ module.exports = class ConfigApi {
       const res = await vaccineController.updateAVaccine(ctx.params.id, ctx.request.body).then((data) => {
         if (data[0]) {
           ctx.response.body = "Actualizado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Vacuna ${ctx.params.id} modificada correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que una vaccine con el codigo provisto debe existir",
-          ctx.response.status = 400
+            ctx.response.status = 400
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que una vaccine con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error modificando vacuna ${ctx.params.id}`)
       });
     });
     router.put("/vaccinationperiods/:id", async (ctx, next) => {
@@ -459,14 +490,16 @@ module.exports = class ConfigApi {
       const res = await vaccinationPeriodController.updateAVaccinationPeriod(ctx.params.id, ctx.request.body).then((data) => {
         if (data) {
           ctx.response.body = "Actualizado satisfactoriamente",
-          ctx.response.status = 200
+            ctx.response.status = 200
+            console.log(`Periodo de vacunacion modificado correctamente`)
         } else {
           ctx.response.body = "No se actualizo, recuerda que un state con el codigo provisto debe existir",
-          ctx.response.status = 400
+            ctx.response.status = 400
         }
       }).catch((e) => {
         ctx.response.body = "Ocurrio un error, recuerda que un vaccination period con el codigo provisto debe existir",
           ctx.response.status = 400
+          console.log(`Error modificando periodo de vacunacion`)
       });
     });
 
@@ -485,10 +518,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Servicio de registro civil ${ctx.request.body.url} agregado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
+            console.log(`Error agregando servicio de registro civil ${ctx.request.body.url}`)
         });
     });
 
@@ -508,10 +543,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Servicio mensajeria ${ctx.request.body.url} agregado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
+            console.log(`Error agregando servicio de mensajeria ${ctx.request.body.url}`)
         });
     });
     router.delete("/smsservice", async (ctx, next) => {
@@ -529,10 +566,12 @@ module.exports = class ConfigApi {
         .then((data) => {
           ctx.response.body = data,
             ctx.response.status = 200
+            console.log(`Servicio mensajeria ${ctx.request.body.url} borrado correctamente`)
         })
         .catch((e) => {
           ctx.response.body = "Ocurrio un error",
             ctx.response.status = 400
+            console.log(`Error borrando servicio de mensajeria ${ctx.request.body.url}`)
         });
     });
 

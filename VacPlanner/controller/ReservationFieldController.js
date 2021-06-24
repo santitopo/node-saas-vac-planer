@@ -34,7 +34,7 @@ module.exports = class ReservationFieldController {
       ctx.response.body = "Borrado satisfactoriamente"
       ctx.response.status = 200
     } catch (err) {
-      console.error(err)
+      console.error(`Error borrando el filtro ${ctx.request.params.fieldName}`)
       ctx.response.body = "Ocurrio un error"
       ctx.response.status = 400
     }

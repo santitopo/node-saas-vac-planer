@@ -42,7 +42,8 @@ module.exports = class ReservationController {
         return err;
       }
     } catch {
-      return "Error reservando el cupo, intente mas tarde."
+      console.log("Error en los filtros")
+      return { body: "Error reservando el cupo, intente mas tarde.", status: 500 }
     }
   }
 
@@ -82,15 +83,18 @@ module.exports = class ReservationController {
   }
 
   parseDate(reservationDate) {
-    const newDate = moment(reservationDate);
+    try {
+      const newDate = moment(reservationDate);
+      if (newDate.isValid()) {
+        const year = newDate.year();
+        const month = (newDate.month() + 1).toString().length == 1 ? "0" + (newDate.month() + 1) : (newDate.month() + 1)
+        const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
 
-    if (newDate.isValid()) {
-      const year = newDate.year();
-      const month = (newDate.month() + 1).toString().length == 1 ? "0" + (newDate.month() + 1) : (newDate.month() + 1)
-      const day = newDate.date().toString().length == 1 ? "0" + newDate.date() : newDate.date();
-
-      const parsedDate = year + "-" + month + "-" + day;
-      return parsedDate;
+        const parsedDate = year + "-" + month + "-" + day;
+        return parsedDate;
+      }
+    } catch {
+      return null;
     }
 
   }
@@ -104,6 +108,7 @@ module.exports = class ReservationController {
   async addReservation(body) {
     const reservationDate = this.parseDate(body.reservationDate);
     if (!reservationDate) {
+      console.log(`No se puede procesar la fecha ${body.reservationDate}`)
       return { body: "Fecha mal provista", status: 400 }
     }
     body.reservationDate = new Date(reservationDate);
@@ -143,11 +148,6 @@ module.exports = class ReservationController {
     }
 
     //Step 5 (SQL) - Update de cupo libre. Deberia devolver el slot
-    const reservationDate = this.parseDate(body.reservationDate);
-    if (!reservationDate) {
-      console.log(`No se puede procesar la fecha ${body.reservationDate}`)
-      return { body: "Fecha mal provista", status: 400 }
-    }
     try {
       var slotData = await this.countryDataAccess.updateSlot({
         turn: body.turn,
@@ -156,7 +156,7 @@ module.exports = class ReservationController {
         zoneCode: body.zoneCode,
         assignmentCriteriasIds: validCriterias,
       });
-    } catch(e) {
+    } catch (e) {
       console.log(e.message);
       return { body: `No se pudo realizar la reserva, intente mas tarde`, status: 500 }
     }

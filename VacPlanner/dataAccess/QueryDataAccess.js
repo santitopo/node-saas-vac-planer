@@ -20,6 +20,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: vaccines, status: 200 };
     } catch {
+      console.log(`Error en consulta de vacunas por estado y turno`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -37,6 +38,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: vaccines, status: 200 };
     } catch {
+      console.log(`Error en consulta de vacunas por estado y zona`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -52,6 +54,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: pendingReservation, status: 200 };
     } catch {
+      console.log(`Error en consulta de reservas pendientes por estado`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -68,6 +71,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: pendingReservation, status: 200 };
     } catch {
+      console.log(`Error en consulta de reservas pendientes por estado y zona`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -138,13 +142,24 @@ module.exports = class QueryDataAccess {
     });
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
-      if (res.rows.filter((d) => d.datname === queryDatabase).length < 1) {
-        console.log("Creating Database...");
-        this.connection.query(`CREATE DATABASE ${queryDatabase};`, async () => {
+      if (err) {
+        console.log("Error conectando a la base de datos queryDB")
+      }
+      else {
+        if (res.rows.filter((d) => d.datname === queryDatabase).length < 1) {
+          this.connection.query(`CREATE DATABASE ${queryDatabase};`, async (error, response) => {
+            if(error){
+              console.log("Error creando la base de datos queryDB")
+            }
+            else{
+            console.log("Creando base de datos queryDB");
+            this.createTables();
+            }
+          });
+        } else {
+          console.log("Creando base de datos countryDB");
           this.createTables();
-        });
-      } else {
-        this.createTables();
+        }
       }
     });
   }
