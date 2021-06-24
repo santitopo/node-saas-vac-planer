@@ -12,13 +12,18 @@ where u.user_name= $1::text
 AND up.user_id = u.id
 AND up.permission_id = p.id`;
 module.exports = class CountryDataAccess {
-  constructor() {
+  constructor(logger) {
+    this.logger = logger;
     this.initialize();
-    this.client = redis.createClient();
+    try {
+      this.client = redis.createClient();
+    } catch {
+      this.logger.logError("Servidor de Redis no responde..");
+    }
+    this.client.on("error", () => this.logger.logError("Error en redis"));
   }
 
   async createTables() {
-    console.log("Connecting to Database...");
     await this.connectDB();
     const { host, port, user, password, database } = config;
     // connect to db
@@ -431,7 +436,6 @@ module.exports = class CountryDataAccess {
       });
       const aux = JSON.parse(JSON.stringify(permissionModels));
       aux.forEach(async (fp) => {
-        console.log("inside foreach");
         await this.addUserPermission(userId, fp.id);
       });
       return null;
@@ -467,7 +471,7 @@ module.exports = class CountryDataAccess {
         return permissions.rows.map((p) => p.name);
       }
     } catch {
-      console.log(`Error en login para usuario ${user}`);
+      this.logger.logError(`Error en login para usuario ${user}`);
       return Promise.reject("Error del servidor");
     }
   }
@@ -478,7 +482,7 @@ module.exports = class CountryDataAccess {
     })
       .then((data) => data.getDataValue("id"))
       .catch((e) => {
-        console.log("Error agregando criterio a base de datos")
+        this.logger.logError("Error agregando criterio a base de datos")
         return null
       });
   }
@@ -591,7 +595,7 @@ module.exports = class CountryDataAccess {
         `select * from reservation where assigned = false and state_code = ${state_code} and zone_id = ${zone_id} and ((date between '${date1}' and '${date2}')  or (date <= '${today}'))`
       )
       .then((data) => data)
-      .catch((e) => console.log(e));
+      .catch((e) => this.logger.logError(e));
     return reservations;
   }
 
@@ -847,21 +851,21 @@ module.exports = class CountryDataAccess {
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (err) {
-        console.log("Error conectando a la base de datos countryDB")
+        this.logger.logError("Error conectando a la base de datos countryDB")
       }
       else {
         if (res.rows.filter((d) => d.datname === database).length < 1) {
           this.connection.query(`CREATE DATABASE ${database};`, async (error, response) => {
             if(error){
-              console.log("Error creando la base de datos countryDB")
+              this.logger.logError("Error creando la base de datos countryDB")
             }
             else{
-            console.log("Creando base de datos countryDB");
+              this.logger.logInfo("Creando base de datos countryDB");
             this.createTables();
             }
           });
         } else {
-          console.log("Creando base de datos countryDB");
+          this.logger.logInfo("Creando base de datos countryDB");
           this.createTables();
         }
       }

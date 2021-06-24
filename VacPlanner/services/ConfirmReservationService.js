@@ -2,7 +2,8 @@ const Queue = require("bull");
 const axios = require("axios");
 
 module.exports = class ConfirmReservationService {
-    constructor(countryDataAccess) {
+    constructor(countryDataAccess, logger) {
+        this.logger = logger;
         this.countryDataAccess = countryDataAccess
         this.reservations = new Queue("Reservations");
         this.init();
@@ -26,9 +27,8 @@ module.exports = class ConfirmReservationService {
             var res = await this.countryDataAccess.getAReservation(reservation.dni).then((data) => data).catch((e) => e)
             if (!res) {
                 let reservation = await this.countryDataAccess.addReservation(job.data).then(data => data).catch((e) => e)
-                console.log(reservation)
             } else {
-                console.log("Ya existe una reserva con esta dni")
+                this.logger.logInfo(`Ya existe una reserva con dni ${job.data.dni}`)
             }
             done()
         });

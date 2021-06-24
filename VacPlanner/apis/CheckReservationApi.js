@@ -5,8 +5,9 @@ const bodyParser = require("koa-bodyparser");
 const CheckReservationController = require("../controller/CheckReservationController");
 
 module.exports = class CheckReservationApi {
-    constructor(countryDataAccess) {
-        this.checkReservations = new CheckReservationController(countryDataAccess);
+    constructor(countryDataAccess, logger) {
+        this.logger = logger;
+        this.checkReservations = new CheckReservationController(countryDataAccess, logger);
         this.init();
     }
 

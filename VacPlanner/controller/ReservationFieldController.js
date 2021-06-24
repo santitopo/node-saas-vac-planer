@@ -1,8 +1,8 @@
 fs = require("fs");
 
 module.exports = class ReservationFieldController {
-  constructor() {
-    //
+  constructor(logger) {
+    this.logger = logger;
   }
 
   async add(ctx, next) {
@@ -18,7 +18,7 @@ module.exports = class ReservationFieldController {
     const path = `../ReservationService/pipeline/filters/${ctx.request.body.fieldName}.js`;
     fs.writeFile(path, template, function (err) {
       if (err) {
-        console.log(err);
+        this.logger.logError(err);
       }
     });
 

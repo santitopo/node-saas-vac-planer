@@ -8,6 +8,6 @@ module.exports = class MQReservations {
   add = async (reservation) => {
     return this.queue
       .add(reservation)
-      .then(() => console.log(`${reservation.reservationCode} Enviado a MQ`));
+      .then(() => null);
   };
 };

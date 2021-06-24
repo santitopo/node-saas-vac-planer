@@ -2,7 +2,8 @@ const crypto = require("crypto");
 const config = require("../../config.json");
 
 module.exports = class UserController {
-  constructor(countryDataAcces) {
+  constructor(countryDataAcces, logger) {
+    this.logger = logger;
     this.countryDataAcces = countryDataAcces;
   }
 
@@ -30,7 +31,7 @@ module.exports = class UserController {
       }
       const permissions = this.getPermissionsByRole(body.role);
       if (!permissions) {
-        console.log("Error: Rol no encontrado");
+        this.logger.logError("Error: Rol no encontrado");
         throw "Rol no encontrado";
       }
       const err = await this.countryDataAcces.addUserPermissions(

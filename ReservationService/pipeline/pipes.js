@@ -2,13 +2,14 @@ var glob = require("glob");
 var Pipeline = require("./direct-pipeline");
 
 class Pipes {
-  constructor() {
+  constructor(logger) {
+    this.logger = logger;
     this.pipeline = new Pipeline();
     this.init();
   }
 
   filterLoading() {
-    console.log("Actualizando Filtros de Reserva...");
+    this.logger.logInfo("Actualizando Filtros de Reserva...");
     this.pipeline.reset();
     let module_dict = {};
     let files = glob.sync("./pipeline/filters/*.js");
@@ -38,7 +39,7 @@ class Pipes {
     this.filterLoading();
     setInterval(() => {
       this.filterLoading();
-    }, 15000);
+    }, 60000);
   };
 }
 module.exports = Pipes;

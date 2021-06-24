@@ -1,5 +1,6 @@
 module.exports = class ZoneController {
-    constructor(countryDataAcces) {
+    constructor(countryDataAcces, logger) {
+      this.logger = logger;
       this.countryDataAcces = countryDataAcces;
     }
 

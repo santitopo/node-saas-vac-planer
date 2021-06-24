@@ -9,9 +9,10 @@ const redis = require("redis");
 const bluebird = require("bluebird")
 
 module.exports = class ReservationController {
-  constructor(countryDataAccess) {
-    this.pipes = new Pipes();
-    this.assignmentCriterias = new AssignmentCriterias();
+  constructor(countryDataAccess, logger) {
+    this.logger=logger;
+    this.pipes = new Pipes(logger);
+    this.assignmentCriterias = new AssignmentCriterias(logger);
     this.mq = new MQReservations();
     this.mqNotAssignedRes = new NonAssignedReservationsQueue("ReservationQueryMQ")
     this.countryDataAccess = countryDataAccess;
@@ -42,7 +43,7 @@ module.exports = class ReservationController {
         return err;
       }
     } catch {
-      console.log("Error en los filtros")
+      this.logger.logError("Error en los filtros")
       return { body: "Error reservando el cupo, intente mas tarde.", status: 500 }
     }
   }
@@ -75,7 +76,7 @@ module.exports = class ReservationController {
           return -1;
         }
       } catch {
-        console.log(`Error corriendo el criterio de asignacion ${f.index}`)
+        this.logger.logError(`Error corriendo el criterio de asignacion ${f.index}`)
         return -1;
       }
     });
@@ -108,7 +109,7 @@ module.exports = class ReservationController {
   async addReservation(body) {
     const reservationDate = this.parseDate(body.reservationDate);
     if (!reservationDate) {
-      console.log(`No se puede procesar la fecha ${body.reservationDate}`)
+      this.logger.logInfo(`No se puede procesar la fecha ${body.reservationDate}`)
       return { body: "Fecha mal provista", status: 400 }
     }
     body.reservationDate = new Date(reservationDate);
@@ -124,7 +125,7 @@ module.exports = class ReservationController {
     //Step 2 - Request a Registro Civil (Deberian ser apis dinamicamente cargadas)
     const person = await this.fetchPerson(body.id);
     if (!person) {
-      console.log(`No se encontro la cedula ${body.id}`)
+      this.logger.logInfo(`No se encontro la cedula ${body.id}`)
       return { body: `No se encontró la cédula ${body.id}`, status: 400 };
     }
     const age = this.calculateAge(new Date(person.DateOfBirth))
@@ -139,11 +140,11 @@ module.exports = class ReservationController {
     try {
       const existsReservaion = await this.countryDataAccess.checkDniInReservations(body.id);
       if (existsReservaion.length > 0) {
-        console.log(`Ya existe una reserva para la cedula ${body.id}`)
+        this.logger.logInfo(`Ya existe una reserva para la cedula ${body.id}`)
         return { body: `Ya existe una reserva para la cedula ${body.id}`, status: 400 }
       }
     } catch {
-      console.log(`Error en la conexion a la base de datos`)
+      this.logger.logError(`Error en la conexion a la base de datos`)
       return { body: `No se pudo realizar la reserva, intente mas tarde`, status: 500 }
     }
 
@@ -157,7 +158,7 @@ module.exports = class ReservationController {
         assignmentCriteriasIds: validCriterias,
       });
     } catch (e) {
-      console.log(e.message);
+      this.logger.logError(e.message);
       return { body: `No se pudo realizar la reserva, intente mas tarde`, status: 500 }
     }
     // Step 6
@@ -177,7 +178,7 @@ module.exports = class ReservationController {
     }
     // If pudo reservar ->  Retorno HTTP
     if (slotData) {
-      console.log(`Se reservo un cupo para la cedula ${body.id} con el codigo de reserva ${reservationCode}`)
+      this.logger.logInfo(`Se reservo un cupo para la cedula ${body.id} con el codigo de reserva ${reservationCode}`)
       let object = {
         dni: person.DocumentId,
         reservationCode,
@@ -190,20 +191,19 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => this.logger.logError(e)) || "[]")
       for (let i = 0; i < arr.length; i++) {
         await axios.post(arr[i].url, object)
           .then((data) => data)
-          .catch((e) => console.log("Error al enviar request a API SMS"))
+          .catch((e) => this.logger.logError("Error al enviar request a API SMS"))
       };
-      //let aux = await axios.post("http://localhost:5007/sms/", object).then((data)=> data).catch((e)=>console.log(e))
 
       return {
         body: object,
         status: 200,
       };
     } else {
-      console.log(`No se pudo reservar cupo para la cedula ${body.id}, se asignara mas adelante`)
+      this.logger.logInfo(`No se pudo reservar cupo para la cedula ${body.id}, se asignara mas adelante`)
       let object = {
         dni: person.DocumentId,
         reservationCode,
@@ -212,15 +212,13 @@ module.exports = class ReservationController {
         timestampR: new Date(Date.now()).toISOString(),
         timestampD: Date.now() - new Date(body.timestampI) + " ms",
       }
-      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => console.log(e)) || "[]")
+      let arr = JSON.parse(await this.client.getAsync("SMSService").then((data) => data).catch((e) => this.logger.logError(e)) || "[]")
       for (let i = 0; i < arr.length; i++) {
         await axios.post(arr[i].url, object)
           .then((data) => data)
-          .catch((e) => console.log("Error al enviar request a API SMS"))
+          .catch((e) => this.logger.logError("Error al enviar request a API SMS"))
       };
-      //axios.post("http://localhost:5007/sms/", object).then().catch((e)=>console.log(e))
       await this.mqNotAssignedRes.add({ state_code: body.stateCode, zone_code: body.zoneCode, assigned: false }, { removeOnComplete: true })
-      console.log("added to mq notAssignedRes")
       return {
         body: object,
         status: 200,

@@ -3,7 +3,8 @@ const { Client } = require("pg");
 const { Sequelize } = require("sequelize");
 
 module.exports = class CountryDataAccess {
-  constructor() {
+  constructor(logger) {
+    this.logger = logger;
     this.initialize();
   }
 
@@ -273,7 +274,7 @@ module.exports = class CountryDataAccess {
         return null;
       })
       .catch(() => {
-        console.log("Error actualizando el cupo");
+        this.logger.logError("Error actualizando el cupo");
         throw new Error("Error actualizando el cupo")
       });
   }
@@ -290,21 +291,21 @@ module.exports = class CountryDataAccess {
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (err) {
-        console.log("Error conectando a la base de datos countryDB")
+        this.logger.logError("Error conectando a la base de datos countryDB")
       }
       else {
         if (res.rows.filter((d) => d.datname === database).length < 1) {
           this.connection.query(`CREATE DATABASE ${database};`, async (error, response) => {
             if(error){
-              console.log("Error creando la base de datos countryDB")
+              this.logger.logError("Error creando la base de datos countryDB")
             }
             else{
-            console.log("Creando base de datos countryDB");
+            this.logger.logInfo("Creando base de datos countryDB");
             this.createTables();
             }
           });
         } else {
-          console.log("Creando base de datos countryDB");
+          this.logger.logInfo("Creando base de datos countryDB");
           this.createTables();
         }
       }

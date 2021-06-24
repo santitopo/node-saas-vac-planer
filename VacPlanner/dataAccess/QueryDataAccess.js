@@ -3,7 +3,8 @@ const { Client } = require("pg");
 const config = require("../../config.json");
 
 module.exports = class QueryDataAccess {
-  constructor() {
+  constructor(logger) {
+    this.logger = logger;
     this.initialize();
   }
 
@@ -20,7 +21,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: vaccines, status: 200 };
     } catch {
-      console.log(`Error en consulta de vacunas por estado y turno`);
+      this.logger.logError(`Error en consulta de vacunas por estado y turno`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -38,7 +39,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: vaccines, status: 200 };
     } catch {
-      console.log(`Error en consulta de vacunas por estado y zona`);
+      this.logger.logError(`Error en consulta de vacunas por estado y zona`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -54,7 +55,7 @@ module.exports = class QueryDataAccess {
       });
       return { body: pendingReservation, status: 200 };
     } catch {
-      console.log(`Error en consulta de reservas pendientes por estado`);
+      this.logger.logError(`Error en consulta de reservas pendientes por estado`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
@@ -71,13 +72,13 @@ module.exports = class QueryDataAccess {
       });
       return { body: pendingReservation, status: 200 };
     } catch {
-      console.log(`Error en consulta de reservas pendientes por estado y zona`);
+      this.logger.logError(`Error en consulta de reservas pendientes por estado y zona`);
       return { body: "Error en la consulta, intente mas tarde", status: 500 };
     }
   }
 
   async createTables() {
-    console.log("Connecting to Database...");
+    this.logger.logInfo("Connecting to Database...");
     const { host, port, user, password, queryDatabase } = config;
     // connect to db
     this.sequelize = new Sequelize(
@@ -143,21 +144,21 @@ module.exports = class QueryDataAccess {
     await this.connection.connect();
     this.connection.query("SELECT datname FROM pg_database;", (err, res) => {
       if (err) {
-        console.log("Error conectando a la base de datos queryDB")
+        this.logger.logError("Error conectando a la base de datos queryDB")
       }
       else {
         if (res.rows.filter((d) => d.datname === queryDatabase).length < 1) {
           this.connection.query(`CREATE DATABASE ${queryDatabase};`, async (error, response) => {
             if(error){
-              console.log("Error creando la base de datos queryDB")
+              this.logger.logError("Error creando la base de datos queryDB")
             }
             else{
-            console.log("Creando base de datos queryDB");
+              this.logger.logInfo("Creando base de datos queryDB");
             this.createTables();
             }
           });
         } else {
-          console.log("Creando base de datos queryDB");
+          this.logger.logInfo("Creando base de datos queryDB");
           this.createTables();
         }
       }
