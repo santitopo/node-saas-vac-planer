@@ -91,7 +91,7 @@ module.exports = class QueryDataAccess {
       {
         state_code: { type: Sequelize.INTEGER, primaryKey: true },
         turn: { type: Sequelize.INTEGER, primaryKey: true },
-        date: { type: Sequelize.DATE, primaryKey: true },
+        date: { type: Sequelize.DATEONLY, primaryKey: true },
         vaccine_amount: { type: Sequelize.INTEGER },
       },
       {
@@ -104,7 +104,7 @@ module.exports = class QueryDataAccess {
       {
         state_code: { type: Sequelize.INTEGER, primaryKey: true },
         zone_code: { type: Sequelize.INTEGER, primaryKey: true },
-        date: { type: Sequelize.DATE, primaryKey: true },
+        date: { type: Sequelize.DATEONLY, primaryKey: true },
         age: { type: Sequelize.INTEGER, primaryKey: true },
         vaccine_amount: { type: Sequelize.INTEGER },
       },

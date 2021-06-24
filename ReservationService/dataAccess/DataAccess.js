@@ -68,7 +68,7 @@ module.exports = class CountryDataAccess {
         dni: { type: Sequelize.STRING },
         phone: { type: Sequelize.STRING },
         reservation_code: { type: Sequelize.STRING, primaryKey: true },
-        date: { type: Sequelize.DATE },
+        date: { type: Sequelize.DATEONLY },
         assigned: { type: Sequelize.BOOLEAN },
         vaccination_period_id: {
           type: Sequelize.INTEGER,
@@ -122,8 +122,8 @@ module.exports = class CountryDataAccess {
       "vaccination_period",
       {
         vaccine_amount: { type: Sequelize.INTEGER },
-        date_from: { type: Sequelize.DATE },
-        date_to: { type: Sequelize.DATE },
+        date_from: { type: Sequelize.DATEONLY },
+        date_to: { type: Sequelize.DATEONLY },
         vac_center_id: {
           type: Sequelize.INTEGER,
           references: {
@@ -208,7 +208,7 @@ module.exports = class CountryDataAccess {
         available_slots: { type: Sequelize.INTEGER },
         total_slots: { type: Sequelize.INTEGER },
         //PKs
-        date: { type: Sequelize.DATE, primaryKey: true },
+        date: { type: Sequelize.DATEONLY, primaryKey: true },
         turn: { type: Sequelize.INTEGER, primaryKey: true },
         state_code: {
           type: Sequelize.INTEGER,
