@@ -35,5 +35,12 @@
   },
   "reservationQueryMQ": "ReservationQueryMQ",
   "vaccinationQueryMQ": "VaccinationQueryMQ",
-  "concurrentMQProcessing": "4"
+  "concurrentMQProcessing": "4",
+  "ReservationApiPort": 5004,
+  "ConfigApiPort": 5005,
+  "RegistroCivilApiPort": 5006,
+  "SMSApiPort": 5007,
+  "AuthenticationApiPort": 5008,
+  "VacQueryApiPort": 5009,
+  "CheckReservationApiPort": 5010
 }
