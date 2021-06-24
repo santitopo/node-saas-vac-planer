@@ -4,6 +4,8 @@ const Koa = require("koa");
 const logger = require("koa-logger");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
+const config = require("../../config.json")
+const RegistroCivilport = config.RegistroCivilApiPort
 
 const population = {};
 
@@ -46,5 +48,5 @@ const initApi = () => {
   app.use(router.routes());
   app.use(router.allowedMethods());
 
-  app.listen(5006);
+  app.listen(RegistroCivilport);
 };

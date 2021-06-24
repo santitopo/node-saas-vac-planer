@@ -1,0 +1,59 @@
+--insert permissions
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('vac_center_crud', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('vaccine_crud', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('vac_period_crud', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('state_crud', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('zone_crud', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('assignment_criteria_add', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('validation_add', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('create_users', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('give_vaccine', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('query', now(),now()); 
+INSERT INTO permission (name, "createdAt","updatedAt")
+VALUES ('api_crud', now(),now()); 
+
+--insert users
+INSERT INTO sys_user (user_name, password, "createdAt","updatedAt")
+VALUES ('santitopo', '1a1dc91c907325c69271ddf0c944bc72', now(),now()); 
+INSERT INTO sys_user (user_name, password, "createdAt","updatedAt")
+VALUES ('colominetti', '1a1dc91c907325c69271ddf0c944bc72', now(),now());
+INSERT INTO sys_user (user_name, password, "createdAt","updatedAt")
+VALUES ('serarevetria', '1a1dc91c907325c69271ddf0c944bc72', now(),now()); 
+
+--insert user_permission
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (1, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (2, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (3, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (4, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (5, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (6, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (7, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (8, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (9, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (10, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (11, 1, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (1, 2, now(),now()); 
+INSERT INTO user_permission (permission_id, user_id, "createdAt","updatedAt")
+VALUES (11, 3, now(),now()); 
