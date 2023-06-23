@@ -16,7 +16,9 @@ Project done using:
 
 ## Main challenges
 💡 High availability and strict security demands are required. Stress tests had to be performed to guarantee availability. </br>
-💡 Automatic assignation of the slots that take into account different factors like a person's age, time spent waiting, etc. Modification of this assignation algorithm in runtime without comprising the availability of the system.
+💡 Automatic assignation of the slots that take into account different factors like a person's age, time spent waiting, etc. Modification of this assignation algorithm in runtime without comprising the availability of the system.</br>
+💡 Pipes and filters pattern applied </br>
+💡 CQRS applied to improve performance </br>
 
 ## High-level description of the Architecture
 
